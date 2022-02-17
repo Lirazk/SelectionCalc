@@ -1,8 +1,7 @@
 library(shiny)
 library(ggplot2)
-source("~/Desktop/New/R/Integrals/EmbryoSelection.R")
 
-# source("EmbryoSelection.R")
+source("EmbryoSelection.R")
 
 update_slider_text <- function(input, session, name_text, name_slider, min, max) {
   # Text
