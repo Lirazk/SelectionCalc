@@ -4,7 +4,7 @@ library(ggplot2)
 source("EmbryoSelection.R")
 
 update_slider_text <- function(input, session, name_text, name_slider, min, max) {
-  # Text
+  # Text was changed
   observeEvent(input[[name_text]],{
     input_N2 <- as.numeric(input[[name_text]])
     # Not a number, so change it to the slider
@@ -26,9 +26,18 @@ update_slider_text <- function(input, session, name_text, name_slider, min, max)
         value = input_N2
       )
     }
-  }, ignoreInit = T)
+    
+    # Also update text if pmin/pmax changed inputN2?
+    if(input_N2 != input[[name_text]] & !is.na(input_N2)) {
+      updateTextInput(
+        session = session,
+        inputId = name_text,
+        value = input_N2
+      ) 
+    }
+  })
   
-  # Slider
+  # Slider was changed
   observeEvent(input[[name_slider]],{
     if(as.numeric(input[[name_text]]) != input[[name_slider]] & !is.na(as.numeric(input[[name_text]])))
     {

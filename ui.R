@@ -111,7 +111,8 @@ slider_and_numeric <- function(id, label, min, max, step, value, helptext = "") 
                     max = max,
                     step = step,
                     value = value
-                  )),numericInput(paste0("input_", id), label = "", value = value), offset = 0)
+                  )),
+         numericInput(paste0("input_", id), label = "", value = value, min = min, max = max, step = step), offset = 0)
   # tags$div(title="Click here to slide through years",  
 }
 
