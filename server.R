@@ -3,53 +3,6 @@ library(ggplot2)
 
 source("EmbryoSelection.R")
 
-update_slider_text <- function(input, session, name_text, name_slider, min, max) {
-  # Text was changed
-  observeEvent(input[[name_text]],{
-    input_N2 <- as.numeric(input[[name_text]])
-    # Not a number, so change it to the slider
-    if(is.na(input_N2)) {
-      updateTextInput(
-        session = session,
-        inputId = name_text,
-        value = input[[name_slider]]
-      )
-    }
-    input_N2 <- pmin(max, pmax(min, input_N2))
-    
-    if(input_N2 != input[[name_slider]] &
-       !is.na(input_N2) & input_N2 >= min & input_N2 <= max)
-    {
-      updateSliderInput(
-        session = session,
-        inputId = name_slider,
-        value = input_N2
-      )
-    }
-    
-    # Also update text if pmin/pmax changed inputN2?
-    if(input_N2 != input[[name_text]] & !is.na(input_N2)) {
-      updateTextInput(
-        session = session,
-        inputId = name_text,
-        value = input_N2
-      ) 
-    }
-  })
-  
-  # Slider was changed
-  observeEvent(input[[name_slider]],{
-    if(as.numeric(input[[name_text]]) != input[[name_slider]] & !is.na(as.numeric(input[[name_text]])))
-    {
-      updateTextInput(
-        session = session,
-        inputId = name_text,
-        value = input[[name_slider]]
-      ) 
-    }
-  }, ignoreInit = T)
-}
-
 server <- function(input, output, session) {
   observeEvent(input$lowestexclude, {
     if (input$lowestexclude == "Lowest") {
@@ -90,24 +43,6 @@ server <- function(input, output, session) {
       shinyjs::show("r")
     }
   })
-  
-  # Should probably make it automatic?
-  update_slider_text(input, session, "input_N2", "N2", 2, 1000)
-  update_slider_text(input, session, "input_K2", "K2", 0.01, 1)
-  update_slider_text(input, session, "input_r2", "r2", 0, 1)
-  update_slider_text(input, session ,"input_q2", "q2", 0, 1)
-  update_slider_text(input, session ,"input_qf2", "qf2", 0, 100)
-  update_slider_text(input, session ,"input_qm2", "qm2", 0, 100)
-  update_slider_text(input, session ,"input_h2", "h2", 0, 1)
-  update_slider_text(input, session ,"input_samples", "samples", 5000, 300000)
-  
-  update_slider_text(input, session, "input_N_2", "N_2", 2, 100)
-  update_slider_text(input, session, "input_rho", "rho", -0.99, 0.99)
-  update_slider_text(input, session, "input_samples_2", "samples_2", 5000, 300000)
-  update_slider_text(input, session ,"input_r2_1", "r2_1", 0, 1)
-  update_slider_text(input, session ,"input_r2_2", "r2_2", 0, 1)
-  update_slider_text(input, session ,"input_K_1", "K_1", 0, 100)
-  update_slider_text(input, session ,"input_K_2", "K_2", 0, 1)
 
   output$distPlot <- renderPlot({
     # output$distPlot <- renderPlotly({
@@ -334,8 +269,8 @@ server <- function(input, output, session) {
       simulate_lowest_risk_two_traits(input$r2_1, input$r2_2, input$rho, input$K_1, input$K_2, input$N_2, input$samples_2)
     cat(sprintf("<p><u>Relative risk reduction for disease 1</u>: <strong>%.4f</strong>\n</p>", temp[1]))
     cat(sprintf("<p><u>Absolute risk reduction for disease 1</u>: <strong>%.4f</strong>\n</p>", temp[2]))
-    cat(sprintf("<p><u>Relative risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", temp[3]))
-    cat(sprintf("<p><u>Absolute risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", temp[4]))
+    cat(sprintf("<p><u>Relative risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, temp[3])))
+    cat(sprintf("<p><u>Absolute risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, temp[4])))
     cat(sprintf("<p style = \"color:red\">Based on %d simulations.</p>", input$samples_2))
     cat("</div>")
   })

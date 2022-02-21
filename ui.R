@@ -84,17 +84,15 @@ plot_panel <- div(class = "well",
 )
 
 slider_and_numeric <- function(id, label, min, max, step, value, helptext = "") {
-  column(width = 12,
-         tags$div(title = helptext,
-                  sliderInput(
-                    inputId = id,
-                    label = label,
-                    min = min,
-                    max = max,
-                    step = step,
-                    value = value
-                  )),
-         numericInput(paste0("input_", id), label = "", value = value, min = min, max = max, step = step), offset = 0)
+  tags$div(title = helptext,
+           sliderInput(
+             inputId = id,
+             label = label,
+             min = min,
+             max = max,
+             step = step,
+             value = value
+           ))
 }
 
 calc_panel <- div(class = "well",
@@ -129,7 +127,7 @@ calc_panel <- div(class = "well",
                            "Father has the disease"),
              checkboxInput("dm2",
                            "Mother has the disease"),
-             slider_and_numeric("samples", "Number of monte carlo samples:", 5000, 300000, 10, 10000, paste("The number of simulations"))))))
+             slider_and_numeric("samples", "Number of monte carlo samples:", 5000, 300000, 10, 10000, "The number of simulations")))))
 
 calc_two_traits <- div(class = "well", fluidRow(column(4,
                                                        slider_and_numeric("N_2", "Number of embryos:", 2, 100, 1, 5, NULL),
