@@ -89,21 +89,21 @@ server <- function(input, output, session) {
       shinyjs::show("K")
       shinyjs::show("r")
     }
-  }, , ignoreInit = T)
+  })
   
   # Should probably make it automatic?
-  update_slider_text(input, session, "input_N2", "N2", 2, 20)
+  update_slider_text(input, session, "input_N2", "N2", 2, 1000)
   update_slider_text(input, session, "input_K2", "K2", 0.01, 1)
   update_slider_text(input, session, "input_r2", "r2", 0, 1)
   update_slider_text(input, session ,"input_q2", "q2", 0, 1)
   update_slider_text(input, session ,"input_qf2", "qf2", 0, 100)
   update_slider_text(input, session ,"input_qm2", "qm2", 0, 100)
   update_slider_text(input, session ,"input_h2", "h2", 0, 1)
-  update_slider_text(input, session ,"input_samples", "samples", 100, 1000000)
+  update_slider_text(input, session ,"input_samples", "samples", 5000, 300000)
   
-  update_slider_text(input, session, "input_N_2", "N_2", 2, 20)
+  update_slider_text(input, session, "input_N_2", "N_2", 2, 100)
   update_slider_text(input, session, "input_rho", "rho", -0.99, 0.99)
-  update_slider_text(input, session, "input_samples_2", "samples_2", 100, 1000000)
+  update_slider_text(input, session, "input_samples_2", "samples_2", 5000, 300000)
   update_slider_text(input, session ,"input_r2_1", "r2_1", 0, 1)
   update_slider_text(input, session ,"input_r2_2", "r2_2", 0, 1)
   update_slider_text(input, session ,"input_K_1", "K_1", 0, 100)
@@ -113,10 +113,10 @@ server <- function(input, output, session) {
     # output$distPlot <- renderPlotly({
     # selectInput("x_var", "Variable for x axis", choices = c("r2", "K", "N")),
     if (input$lowestexclude == "Lowest") {
-      subtitle <- "Lowest strategy"
+      subtitle <- "Lowest PRS strategy"
     }
     else {
-      subtitle <- "Exclude strategy"
+      subtitle <- "Exclude high PRS strategy"
     }
     selected_x <- input$x_var
     if(selected_x == "Number of embryos") {
@@ -145,7 +145,7 @@ server <- function(input, output, session) {
         # if (input$relative_abs == "Absolute risk") y  <- y * x
       }
       # subtitle <- "Lowest strategy"
-      x_lab <- "Disease prevalence"
+      x_lab <- "Disease prevalence (log scale)"
     }
     else if(selected_x == "r2" || selected_x == "$$r^2$$") {
       x <- seq(0, 1, length = 50)
@@ -175,59 +175,6 @@ server <- function(input, output, session) {
       print(selected_x)
     }
     
-    # if (input$lowestexclude != "Lowest") {
-    # ggplotly(ggplot(mapping = aes(x, y)) +
-    #   geom_point() +
-    #   geom_line() +
-    #   theme_minimal() +
-    #   labs(
-    #     title = "Risk reduction",
-    #     subtitle = subtitle,
-    #     # x = "Percentile PRS to exclude",
-    #     x = x_lab,
-    #     y = "Risk reduction"
-    #   ) +
-    #   theme(
-    #     plot.subtitle = element_text(size = 22, hjust = 0.5),
-    #     plot.title = element_text(size = 25, hjust = 0.5)
-    #   ))
-    
-    #   plot_ly(data.frame(x=x, y=y), y=~y, x=~x, 
-    #           name = "", color = I("black")) %>% 
-    #     add_lines() %>% 
-    #     add_markers()
-    # }
-    # else {
-    # ggplotly(ggplot(mapping = aes(x, y)) +
-    #   geom_point() +
-    #   geom_line() +
-    #   theme_minimal() +
-    #   labs(
-    #     title = "Risk reduction",
-    #     subtitle = subtitle,
-    #     # x = "Number of embroys",
-    #     x = x_lab,
-    #     y = "Risk reduction"
-    #   ) +
-    #   theme(
-    #     plot.subtitle = element_text(size = 22, hjust = 0.5),
-    #     plot.title = element_text(size = 25, hjust = 0.5)
-    #   ))
-    #   plot_ly(data.frame(x=x, y=y), y=~y, x=~x, 
-    #           name = "", color = I("black"), showlegend = F) %>% 
-    #     add_lines() %>% 
-    #     add_markers() %>%
-    #     layout(title = paste0("Risk reduction\n", subtitle),
-    #            xaxis = list(title = x_lab),
-    #            yaxis = list(title = "Risk Reduction"))
-    # }
-    # plot_ly(data.frame(x=x, y=y), y=~y, x=~x, 
-    #         name = "", color = I("black"), showlegend = F) %>% 
-    #   add_lines() %>% 
-    #   add_markers() %>%
-    #   layout(title = paste0("Risk reduction\n", subtitle),
-    #          xaxis = list(title = x_lab),
-    #          yaxis = list(title = "Risk Reduction"))
     ggplot(mapping = aes(x, y)) +
       geom_point() +
       geom_line() +
@@ -241,8 +188,9 @@ server <- function(input, output, session) {
       theme(
         plot.subtitle = element_text(size = 22, hjust = 0.5),
         plot.title = element_text(size = 25, hjust = 0.5),
-        axis.title.x = element_text(size = 20, family = "Arial"),
+        axis.title.x = element_text(size = 20),
         axis.title.y = element_text(size = 20),
+        axis.text = element_text(size = 15),
         panel.background = element_rect(fill = "#f5f5f5", color = NA),
         plot.background = element_rect(fill = "#f5f5f5", color = NA)
       ) +
@@ -251,8 +199,6 @@ server <- function(input, output, session) {
   })
   
   output$summary <- renderPrint({
-    # updateSliderInput(inputId = "N2", value = input$N2)
-    # updateNumericInput(inputId = "N2", value = input$N2)
     cat("<div class = \"alert alert-info\">")
     if (input$type2 == "Risk reduction") {
       temp <- risk_reduction_lowest(input$r2, K = input$K2, n = input$N2)
@@ -263,6 +209,18 @@ server <- function(input, output, session) {
                                  q = input$q2,
                                  n = input$N2)
       }
+      cat(
+        sprintf(
+          "<p><u>Baseline risk</u>: <strong>%.4f</strong>\n</p>",
+          input$K2
+        )
+      )
+      cat(
+        sprintf(
+          "<p><u>Risk for specific strategy</u>: <strong>%.4f</strong>\n</p>",
+           input$K2 - temp * input$K2
+        )
+      )
       cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp))
       cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong></p>", temp * input$K2))
     }
@@ -289,8 +247,21 @@ server <- function(input, output, session) {
             relative = T
           )
       }
-      cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp))
-      cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong></p>", temp * input$K2))
+      
+      cat(
+        sprintf(
+          "<p><u>Baseline risk</u>: <strong>%.4f</strong>\n</p>",
+          temp$baseline
+        )
+      )
+      cat(
+        sprintf(
+          "<p><u>Risk for specific strategy</u>: <strong>%.4f</strong>\n</p>",
+          temp$risk
+        )
+      )
+      cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp$rr))
+      cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong></p>", temp$rr * temp$baseline))
     }
     else {
       if (input$r2 > input$h2) {
@@ -343,7 +314,9 @@ server <- function(input, output, session) {
         cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong>\n</p>", temp[4]))
         
         cat(sprintf("<p style = \"color:red\">Based on %d simulations, estimated standard deviation in parentheses.</p>", input$samples))
-        
+        if(temp[1] < temp[2]) {
+          cat(sprintf("<p style = \"color:red\">Baseline risk is smaller than the strategy risk, so the sample size is probably too small.</p>", input$samples))
+        }
         # cat("Note that the standard deviation of the relative risk reduction can be much higher, and a larger sample size should be used to estimate it well.")
       }
       else {

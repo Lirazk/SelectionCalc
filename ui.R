@@ -1,10 +1,5 @@
 library(shiny)
 
-# https://rstudio.github.io/shinytest/
-# https://rstudio.github.io/shinyloadtest/
-
-# about_panel <- verticalLayout(mainPanel = mainPanel(verbatimTextOutput("about_text")))
-
 about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               HTML("<p>This application implements methods to calculate the expected risk reduction for a disease, when selecting embryos based on their polygenic risk scores(PRS). The calculations are based on the derivations in <a href = \"https://doi.org/10.7554/elife.64716\">Lencz etc.</a></p>"),
                               p("There are two selection strategies:"),
@@ -31,16 +26,15 @@ about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                                    <li> Mother has the disease - as the previous one.</li>
                                    <li> Number of monte carlo samples - the number of times the simulation is run. </li>
                                    </ol>"),
-                              h2("Two traits"),
-                              p("Two traits is a calculator of the risk of two diseases, given a certain correlation and when selecting the embryo with the lowest PRS for disease 1. It is based on a simulation as explained in the paper."),
-                              p("The only new variable here is $\\rho$, the correlation between the two diseases."),
+                              h2("Two diseases"),
+                              p("Two diseases is a calculator of the risk of two diseases, given a certain correlation and when selecting the embryo with the lowest PRS for disease 1. It is based on a simulation as explained in the paper."),
+                              p("The only new variable here is $\\rho$, the genetic correlation between the two diseases."),
                               h2("Reference"),
                               HTML("<ol>
                                    <li> <cite>Lencz, T., Backenroth, D., Granot-Hershkovitz, E., Green, A., Gettler, K., Cho, J. H., Weissbrod, O., Zuk, O., & Carmi, S. (2021). Utility of polygenic embryo screening for disease depends on the selection strategy. ELife, 10. <a href=\"https://doi.org/10.7554/elife.64716\">https://doi.org/10.7554/elife.64716</a> </cite> </li>
                                    </ol>")))
 
 plot_panel <- div(class = "well",
-  # sidebarPanel(
   fluidRow(column(4,
     radioButtons("x_var", "Variable for x axis", choiceNames = c("R-squared", "Disease prevalence", "Number of embryos"), 
                  choiceValues = c("r2", "Disease prevalence", "Number of embryos"),
@@ -50,7 +44,6 @@ plot_panel <- div(class = "well",
       label = "Choose lowest risk embryo or exclude high risk embroys",
       choices = c("Lowest", "Exclude"), inline = T
     )),
-    # selectInput("x_var", "Variable for x axis", choices = c("$$r^2$$", "Disease prevalence", "Number of embryos")),
     column(4, tags$div(title = "The R-squared of the polgenic risk score model.", sliderInput(
       inputId = "r",
       label = "$$r^2:$$",
@@ -75,7 +68,6 @@ plot_panel <- div(class = "well",
       step = 1,
       value = 5
     ),
-    # selectInput(inputId = "relative_abs", label = "Risk measure type", choices = c("Relative risk", "Absolute risk")),
     conditionalPanel(
       condition = "input.lowestexclude == 'Exclude'",
       tags$div(title = "The quantile of the polygenic risk score from which we exclude embryos.", sliderInput(
@@ -88,20 +80,10 @@ plot_panel <- div(class = "well",
       ))
     ),
   )),
-  # mainPanel(br(), plotlyOutput(outputId = "distPlot", height = 800))
   fluidRow(column(12, plotOutput(outputId = "distPlot", height = 600)))
 )
 
 slider_and_numeric <- function(id, label, min, max, step, value, helptext = "") {
-  # column(width = 12, helpText(helptext),
-  #   sliderInput(
-  #   inputId = id,
-  #   label = label,
-  #   min = min,
-  #   max = max,
-  #   step = step,
-  #   value = value
-  # ), numericInput(paste0("input_", id), label = "", value = value, min = min, max = max), offset = 0)
   column(width = 12,
          tags$div(title = helptext,
                   sliderInput(
@@ -113,63 +95,12 @@ slider_and_numeric <- function(id, label, min, max, step, value, helptext = "") 
                     value = value
                   )),
          numericInput(paste0("input_", id), label = "", value = value, min = min, max = max, step = step), offset = 0)
-  # tags$div(title="Click here to slide through years",  
 }
 
-# calc_panel <- sidebarLayout(
-#   # slider_and_numeric("N2", "N:", 2, 20, 1, 5, "The number of embryos."),
-#   # slider_and_numeric("K2", "K:", 0.01, 1, 0.01, 0.5, "Disease prevalence."),
-#   sidebarPanel(
-#     slider_and_numeric("N2", "Number of embryos:", 2, 20, 1, 5, "The number of embryos."),
-#     slider_and_numeric("K2", "Disease prevalence:", 0.01, 1, 0.01, 0.5, "Disease prevalence."),
-#     slider_and_numeric("r2", "$$r^2:$$", 0, 1, 0.01, 0.5, paste(expression(r^2), "of the PRS.")),
-# 
-#     conditionalPanel(
-#       condition = "input.lowestexclude2 == 'Exclude'",
-#       slider_and_numeric("q2", "Quantile from which to exclude:", 0, 1, 0.01, 0.5, paste("Quantile to exclude.")),
-#     ),
-#     conditionalPanel(
-#       condition = "input.type2 == 'Conditional'",
-#       slider_and_numeric("qf2", "Father's PRS quantile:", 0, 100, 1, 5, paste("Father's PRS quantile.")),
-#       slider_and_numeric("qm2", "Mother's PRS quantile:", 0, 100, 1, 5, paste("Mother's PRS quantile.")),
-#     ),
-#     conditionalPanel(
-#       condition = "input.type2 == 'Family History'",
-#       slider_and_numeric("h2", "$$h^2:$$", 0, 1, 0.01, 0.5, paste("Disease's heritability.")),
-#       checkboxInput("df2",
-#                     "Father disease:"),
-#       checkboxInput("dm2",
-#                     "Mother disease:"),
-#       slider_and_numeric("samples", "Number of monte carlo samples:", 100, 1000000, 10, 10000, paste("")),
-#     ),
-#     selectInput(
-#       inputId = "lowestexclude2",
-#       label = "Strategy",
-#       choices = c("Lowest", "Exclude")
-#     ),
-#     selectInput(
-#       inputId = "type2",
-#       label = "Type",
-#       choices = c("Risk reduction", "Conditional", "Family History")
-#     )
-#   ),
-#   mainPanel(style = "font-size:50px", br(), verbatimTextOutput("summary"))
-# )
-
 calc_panel <- div(class = "well",
-  fluidRow(column(4, slider_and_numeric("N2", "Number of embryos:", 2, 20, 1, 5, NULL),
+  fluidRow(column(4, slider_and_numeric("N2", "Number of embryos:", 2, 1000, 1, 5, NULL),
                   slider_and_numeric("K2", "Disease prevalence:", 0.01, 1, 0.01, 0.5, NULL),
                   slider_and_numeric("r2", "$$r^2:$$", 0, 1, 0.01, 0.5, "The R-squared of the polygenic risk score model.")),
-           # column(4, selectInput(
-           #   inputId = "lowestexclude2",
-           #   label = "Strategy",
-           #   choices = c("Lowest", "Exclude")
-           # ),
-           # selectInput(
-           #   inputId = "type2",
-           #   label = "Type",
-           #   choices = c("Risk reduction", "Conditional", "Family History")
-           # )),
            column(4, radioButtons(
              inputId = "lowestexclude2",
              label = "Choose lowest risk embryo or exclude high risk embroys",
@@ -184,7 +115,7 @@ calc_panel <- div(class = "well",
            conditionalPanel(
              condition = "input.lowestexclude2 == 'Exclude'",
              slider_and_numeric("q2", "Quantile from which to exclude embryos:", 0, 1, 0.01, 0.5, paste("The quantile of the polygenic risk score from which we exclude embryos.")),
-           )),
+           ), fluidRow(column(8, offset = 2, htmlOutput("summary"), align = "center"))),
            column(4,
            conditionalPanel(
              condition = "input.type2 == 'Conditional'",
@@ -198,39 +129,23 @@ calc_panel <- div(class = "well",
                            "Father has the disease"),
              checkboxInput("dm2",
                            "Mother has the disease"),
-             slider_and_numeric("samples", "Number of monte carlo samples:", 100, 1000000, 10, 10000, paste("The number of simulations")),
-           ))),
-  # fluidRow(column(width = 12, verbatimTextOutput("summary"), align = "center"), align = "center"))
-  fluidRow(column(width = 4, offset = 4, htmlOutput("summary"), align = "center"), align = "center"))
-# calc_two_traits <- sidebarLayout(fluid = F,
-#   sidebarPanel(
-#     slider_and_numeric("N_2", "Number of embryos:", 2, 20, 1, 5, "The number of embryos."),
-#     slider_and_numeric("r2_1", "$$r^2 ~ \\text{disease 1:}$$", 0, 1, 0.01, 0.5, "r^2 of disease 1"),
-#     slider_and_numeric("r2_2", "$$r^2 ~ \\text{disease 2:}$$", 0, 1, 0.01, 0.5, "r^2 of disease 2"),
-#     slider_and_numeric("rho", '$$\\rho :$$', -0.99, 0.99, 0.01, 0, "The correlation between the diseases"),
-#     slider_and_numeric("K_1", "Prevalence of disease 1:", 0, 1, 0.01, 0.5, "The prevalence of disease 1."),
-#     slider_and_numeric("K_2", "Prevalence of disease 2:", 0, 1, 0.01, 0.5, "The prevalence of disease 2."),
-#     slider_and_numeric("samples_2", "Number of monte carlo samples:", 100, 1000000, 10, 10000, ""),
-#     # Sidebar isn't right without some dummy like that
-#     icon("!")),
-#   mainPanel(style = "font-size:50px", br(), verbatimTextOutput("two_traits")))
+             slider_and_numeric("samples", "Number of monte carlo samples:", 5000, 300000, 10, 10000, paste("The number of simulations"))))))
 
 calc_two_traits <- div(class = "well", fluidRow(column(4,
-                                   slider_and_numeric("N_2", "Number of embryos:", 2, 20, 1, 5, NULL),
-                                   slider_and_numeric("rho", '$\\rho$, the correlation between the diseases:', -0.99, 0.99, 0.01, 0, "The correlation between the two diseases."),
-                                   slider_and_numeric("samples_2", "Number of monte carlo samples:", 100, 1000000, 10, 10000, "The number of simulations.")),
-                            column(4, 
-                                   slider_and_numeric("r2_1", "$$r^2 ~ \\text{disease 1:}$$", 0, 1, 0.01, 0.5, "The R-squared of the polygenic risk score model for the first disease"),
-                                   slider_and_numeric("r2_2", "$$r^2 ~ \\text{disease 2:}$$", 0, 1, 0.01, 0.5, "The R-squared of the polygenic risk score model for the second disease")),
-                            column(4, 
-                                   slider_and_numeric("K_1", "Prevalence of disease 1:", 0, 1, 0.01, 0.5, NULL),
-                                   slider_and_numeric("K_2", "Prevalence of disease 2:", 0, 1, 0.01, 0.5, NULL))),
-                            # fluidRow(column(12, verbatimTextOutput("two_traits"), align = "center")))
-                       fluidRow(column(4, offset = 4, htmlOutput("two_traits"), align = "center")))
+                                                       slider_and_numeric("N_2", "Number of embryos:", 2, 100, 1, 5, NULL),
+                                                       slider_and_numeric("rho", '$\\rho$, the genetic correlation between the diseases:', -0.99, 0.99, 0.01, 0, "The correlation between the two diseases."),
+                                                       slider_and_numeric("samples_2", "Number of monte carlo samples:", 5000, 300000, 10, 10000, "The number of simulations.")),
+                                                column(4, 
+                                                       slider_and_numeric("r2_1", "$$r^2 ~ \\text{disease 1:}$$", 0, 1, 0.01, 0.5, "The R-squared of the polygenic risk score model for the first disease"),
+                                                       slider_and_numeric("r2_2", "$$r^2 ~ \\text{disease 2:}$$", 0, 1, 0.01, 0.5, "The R-squared of the polygenic risk score model for the second disease"),
+                                                       fluidRow(column(8, offset = 2, htmlOutput("two_traits"), align = "center"))),
+                                                column(4, 
+                                                       slider_and_numeric("K_1", "Prevalence of disease 1:", 0, 1, 0.01, 0.5, NULL),
+                                                       slider_and_numeric("K_2", "Prevalence of disease 2:", 0, 1, 0.01, 0.5, NULL))))
 
 
 
-ui <- fluidPage(# theme = bs_theme(version = 4, bootswatch = "minty"),
+ui <- fluidPage(
   tags$head(HTML("<script type=\"text/x-mathjax-config\">
   MathJax.Hub.Config({
     tex2jax: {
@@ -246,7 +161,7 @@ ui <- fluidPage(# theme = bs_theme(version = 4, bootswatch = "minty"),
     tabPanel("About", about_panel),
     tabPanel("Plot", plot_panel),
     tabPanel("Calculator", calc_panel),
-    tabPanel("Two traits", calc_two_traits)
+    tabPanel("Two diseases", calc_two_traits)
   ))
 
 

@@ -93,7 +93,7 @@ risk_reduction_lowest_conditional = function(r2,K,n,qf,qm,relative=T,parental_av
   } else {
     reduction = baseline-risk
   }
-  return(reduction)
+  return(list(rr=reduction, baseline=baseline, risk=risk))
 }
 
 risk_reduction_exclude_conditional = function(r2,K,q,n,qf,qm,relative=T)
@@ -128,7 +128,7 @@ risk_reduction_exclude_conditional = function(r2,K,q,n,qf,qm,relative=T)
   } else {
     reduction = baseline-risk
   }
-  return(reduction)
+  return(list(rr=reduction, baseline=baseline, risk=risk))
 }
 
 
