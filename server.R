@@ -2,8 +2,26 @@ library(shiny)
 library(ggplot2)
 
 source("EmbryoSelection.R")
-
 server <- function(input, output, session) {
+  showModal(modalDialog(p("We use the liability threshold model, where we assume that the underlying disease has a liability
+                            which is a linear function of the genetic effect + residual.
+                            We assume that there are n embryos, with liability
+                            $y_i = x_i + c + \\epsilon, i \\in (1, ..., n)$, where $c \\sim N(0, \\frac{r_{ps}^2}{2})$ is the
+                            genetic effect shared by all of the embryos, $$x_i \\sim N(0, \\frac{r_{ps}^2}{2})$$
+                            is the specific genetic effect of each embryo, and $\\epsilon_i \\sim N(0, 1-r_{ps}^2)$
+                            is the residual.
+                            "),
+                        p("An individual has the disease whenever his $y$ is larger than some threshold $P(\\text{Disease}) = P(y > z_k) = K$, where $z_k$ is the (1-k) quantile of a normal distribution and K is the prevalence of the disease in the population."),
+                        p("See the paper for the full details."),
+    checkboxInput("accept", "Accept"),
+    "The results are for research purposes only, and should not be used to guide clinical decisions.",
+    checkboxInput("accept2", "Accept"), easyClose = F, footer = NULL))
+
+  observeEvent(input$accept | input$accept2, {
+    req(input$accept & input$accept2)
+    removeModal()
+  })
+
   observeEvent(input$lowestexclude, {
     if (input$lowestexclude == "Lowest") {
       # withMathJax(updateSelectInput(session, "x_var", choices = c("r2", "Disease prevalence", "Number of embryos")))
@@ -69,7 +87,7 @@ server <- function(input, output, session) {
       x_lab <- "Number of embryos"
     }
     else if(selected_x == "Disease prevalence") {
-      x <- seq(0.01, 1, length = 50)
+      x <- exp(seq(log(0.01), log(0.2), length = 50))
       # y <- sapply(x, function(x) risk_reduction_lowest(input$r, x, n = input$N))
       if (input$lowestexclude == "Lowest") {
         y <- sapply(x, function(x) risk_reduction_lowest(input$r, x, n = input$N))
@@ -80,7 +98,7 @@ server <- function(input, output, session) {
         # if (input$relative_abs == "Absolute risk") y  <- y * x
       }
       # subtitle <- "Lowest strategy"
-      x_lab <- "Disease prevalence (log scale)"
+      x_lab <- "Disease prevalence"
     }
     else if(selected_x == "r2" || selected_x == "$$r^2$$") {
       x <- seq(0, 1, length = 50)
@@ -134,15 +152,21 @@ server <- function(input, output, session) {
   })
   
   output$summary <- renderPrint({
+    # print(input$K2)
     cat("<div class = \"alert alert-info\">")
     if (input$type2 == "Risk reduction") {
-      temp <- risk_reduction_lowest(input$r2, K = input$K2, n = input$N2)
+      # temp <- risk_reduction_lowest(input$r2, K = input$K2, n = input$N2)
+      temp <- risk_reduction_lowest(input$r2, K = input$K2, 
+                                    n = input$N2)
       if (input$lowestexclude2 != "Lowest") {
-        temp <-
-          risk_reduction_exclude(input$r2,
-                                 K = input$K2,
-                                 q = input$q2,
-                                 n = input$N2)
+        # temp <- risk_reduction_exclude(input$r2,
+        #                          K = input$K2,
+        #                          q = input$q2,
+        #                          n = input$N2)
+        temp <- risk_reduction_exclude(input$r2,
+                                       K = input$K2,
+                                       q = input$q2,
+                                       n = input$N2)
       }
       cat(
         sprintf(
@@ -158,6 +182,8 @@ server <- function(input, output, session) {
       )
       cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp))
       cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong></p>", temp * input$K2))
+      
+      cat(sprintf("<p><u>Number needed to screen</u>: <strong>%.4f</strong></p>", 1/(temp * input$K2)))
     }
     else if (input$type2 == "Conditional") {
       temp <-
@@ -197,6 +223,7 @@ server <- function(input, output, session) {
       )
       cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp$rr))
       cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong></p>", temp$rr * temp$baseline))
+      cat(sprintf("<p><u>Number needed to screen</u>: <strong>%.4f</strong></p>", 1/(temp$rr * temp$baseline)))
     }
     else {
       if (input$r2 > input$h2) {
@@ -247,6 +274,7 @@ server <- function(input, output, session) {
         )
         cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp[3]))
         cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong>\n</p>", temp[4]))
+        cat(sprintf("<p><u>Number needed to screen</u>: <strong>%.4f</strong>\n</p>", 1/temp[4]))
         
         cat(sprintf("<p style = \"color:red\">Based on %d simulations, estimated standard deviation in parentheses.</p>", input$samples))
         if(temp[1] < temp[2]) {
@@ -269,15 +297,14 @@ server <- function(input, output, session) {
       simulate_lowest_risk_two_traits(input$r2_1, input$r2_2, input$rho, input$K_1, input$K_2, input$N_2, input$samples_2)
     cat(sprintf("<p><u>Relative risk reduction for disease 1</u>: <strong>%.4f</strong>\n</p>", temp[1]))
     cat(sprintf("<p><u>Absolute risk reduction for disease 1</u>: <strong>%.4f</strong>\n</p>", temp[2]))
+    cat(sprintf("<p><u>Number needed to screen for disease 1</u>: <strong>%.4f</strong>\n</p>", 1/temp[2]))
+    
     cat(sprintf("<p><u>Relative risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, temp[3])))
     cat(sprintf("<p><u>Absolute risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, temp[4])))
+    cat(sprintf("<p><u>Number needed to screen for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, 1/temp[4])))
+    
     cat(sprintf("<p style = \"color:red\">Based on %d simulations.</p>", input$samples_2))
     cat("</div>")
-  })
-  
-  output$about_text <- renderPrint({
-    cat("This calcluator implements the methods from the paper Utility of polygenic embryo screening for
-disease depends on the selection strategy.")
   })
 }
 

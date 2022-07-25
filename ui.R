@@ -1,4 +1,27 @@
 library(shiny)
+library(shinyWidgets)
+
+helpPopup <- function(title, content,
+                      placement=c('right', 'top', 'left', 'bottom'),
+                      trigger=c('click', 'hover', 'focus', 'manual')) {
+  tagList(
+    singleton(
+      tags$head(
+        tags$script("$(function() { $(\"[data-toggle='popover']\").popover({container: 'body'}); })")
+      )
+    ),
+    tags$a(
+      href = "#", class = "btn bt
+      n-mini", `data-toggle` = "popover",
+      title = title, `data-content` = content, `data-animation` = TRUE,
+      `data-placement` = match.arg(placement, several.ok=TRUE)[1],
+      `data-trigger` = match.arg(trigger, several.ok=TRUE)[1],
+      HTML("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"lightblue\" class=\"bi bi-question-circle-fill\" viewBox=\"0 0 16 16\">
+   <path d=\"M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247zm2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.01.927z\"/>
+ </svg>")
+    )
+  )
+}
 
 about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               HTML("<p>This application implements methods to calculate the expected risk reduction for a disease, when selecting embryos based on their polygenic risk scores(PRS). The calculations are based on the derivations in <a href = \"https://doi.org/10.7554/elife.64716\">Lencz etc.</a></p>"),
@@ -52,14 +75,19 @@ plot_panel <- div(class = "well",
       step = 0.01,
       value = 0.3
     )),
-    sliderInput(
+    # sliderInput(
+    #   inputId = "K",
+    #   label = "Disease prevalence:",
+    #   min = 0.001,
+    #   max = 0.2,
+    #   step = 0.001,
+    #   value = 0.01
+    # )),
+    sliderTextInput(
       inputId = "K",
       label = "Disease prevalence:",
-      min = 0.01,
-      max = 1,
-      step = 0.01,
-      value = 0.05
-    )),
+      choices = unique(round(exp(seq(log(0.01), log(0.2), length = 500)), digits = 4)),
+      grid = F, force_edges = T)),
     column(4, sliderInput(
       inputId = "N",
       label = "Number of embryos:",
@@ -76,29 +104,117 @@ plot_panel <- div(class = "well",
         min = 0,
         max = 1,
         step = 0.01,
-        value = 0.5
+        value = 0.3
       ))
     ),
   )),
   fluidRow(column(12, plotOutput(outputId = "distPlot", height = 600)))
 )
 
-slider_and_numeric <- function(id, label, min, max, step, value, helptext = "") {
-  tags$div(title = helptext,
-           sliderInput(
-             inputId = id,
-             label = label,
-             min = min,
-             max = max,
-             step = step,
-             value = value
-           ))
+slider_and_numeric <- function(id, label, min, max, step, value, helptext = "",
+                               placement = "bottom") {
+  if(length(step) > 1) {
+    splitLayout(cellWidths = c("80%", "20%"),
+      sliderTextInput(
+        inputId = id,
+        label = label,
+        choices = step,
+        grid = T, force_edges = T),
+      helpPopup(NULL, helptext, placement = placement, c("hover")))
+  }
+  else {
+    splitLayout(cellWidths = c("80%", "20%"),
+                sliderInput(
+                  inputId = id,
+                  label = label,
+                  min = min,
+                  max = max,
+                  step = step,
+                  value = value
+                ), 
+                helpPopup(NULL, helptext, placement = placement, c("hover")))
+  }
+#            HTML(sprintf("<div title = \"%s\"> <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"currentColor\" class=\"bi bi-question-circle-fill\" viewBox=\"0 0 16 16\">
+#   <path d=\"M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247zm2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.01.927z\"/>
+# </svg></div>", helptext)))
+           # ), HTML("<button type=\"button\" class=\"fa fa-question-circle\" data-toggle=\"popover\" title=\"Popover title\" data-content=\"And here's some amazing content. It's very engaging. Right?\">?</button>"))
 }
 
 calc_panel <- div(class = "well",
-  fluidRow(column(4, slider_and_numeric("N2", "Number of embryos:", 2, 1000, 1, 5, NULL),
-                  slider_and_numeric("K2", "Disease prevalence:", 0.01, 1, 0.01, 0.5, NULL),
-                  slider_and_numeric("r2", "$$r^2:$$", 0, 1, 0.01, 0.5, "The R-squared of the polygenic risk score model.")),
+    #               tags$head(tags$script(HTML("$(function() {
+    # setTimeout(function(){
+    #   var vals = [0];
+    #   var powStart = 0.01;
+    #   var powStop = 0.2;
+    #   while (powStart <= powStop) {
+    #     vals.push(powStart);
+    #     powStart *= 2;
+    #   }
+    #   $('#K2').data('ionRangeSlider').update({'values':vals})
+    #   $('#K').data('ionRangeSlider').update({'values':vals})
+    #   $('#K_1').data('ionRangeSlider').update({'values':vals})
+    #   $('#K_2').data('ionRangeSlider').update({'values':vals})
+    # }, 3)})"))),
+    
+    # tags$head(tags$script(HTML("$(function() {
+    # setTimeout(function(){
+    # $('#K2').data('ionRangeSlider').update({
+    #        'prettify': function (num) { 
+    #        return ((0.01*Math.pow(2, (num*7))).toFixed(2)); 
+    #        }})
+    # }, 5)})"))),
+    tags$head(tags$script(("
+    Number.prototype.mapLog = function (min, max) {
+      const mapped = (this - min) * (Math.log(max) - Math.log(min)) / (max - min) + Math.log(min);
+      return Math.exp(mapped);
+    }
+    $(function() {
+    setTimeout(function(){
+    
+    # $('#K2').data('ionRangeSlider').update({
+    #        'prettify': function (n) {
+    #        return (n.mapLog(this.min, this.max).toLocaleString('en-US'));
+    #        }})
+
+    $('#K_1').data('ionRangeSlider').update({
+           'prettify': function (n) {
+           return (n.mapLog(this.min, this.max).toLocaleString('en-US'));
+           }})
+    $('#K_2').data('ionRangeSlider').update({
+           'prettify': function (n) {
+           return (n.mapLog(this.min, this.max).toLocaleString('en-US'));
+           }})
+                           }, 2)})"))),
+    
+    # tags$head(tags$script(("
+    # Number.prototype.mapLog = function (min, max) {
+    #   const mapped = (this - min) * (Math.log(max) - Math.log(min)) / (max - min) + Math.log(min);
+    #   return Math.exp(mapped);
+    # }
+    # (function() {
+    # setTimeout(function(){
+    # $('#K').data('ionRangeSlider').update({
+    #        'prettify': function (n) {
+    #         n.mapLog(this.min, this.max).toLocaleString('en-US');
+    #        }})
+    # $('#K2').data('ionRangeSlider').update({
+    #        'prettify': function (n) {
+    #         n.mapLog(this.min, this.max).toLocaleString('en-US');
+    #        }})
+    # $('#K_1').data('ionRangeSlider').update({
+    #        'prettify': function (n) {
+    #         n.mapLog(this.min, this.max).toLocaleString('en-US');
+    #        }})
+    # $('#K_2').data('ionRangeSlider').update({
+    #        'prettify': function (n) {
+    #         n.mapLog(this.min, this.max).toLocaleString('en-US');
+    #        }})}, 2)})"))),
+ 
+  fluidRow(column(4, slider_and_numeric("N2", "Number of embryos:", 2, 20, 1, 5, "The number of embryos available for selection."),
+                  # slider_and_numeric("K2", "Disease prevalence:", 0.01, 1, 0.01, 0.5, NULL),
+                  slider_and_numeric("K2", "Disease prevalence:", 0.01, 0.2, 
+                                     sort(unique(c(seq(0.01, 0.2, 0.01), round(exp(seq(log(0.01), log(0.2), length = 500)), digits = 4)))), 0.01, "How prevalent is the disease in the population? 0.01 means 1% has the disease, while 0.2 means 20% of the population has the disease."),
+                  slider_and_numeric("r2", "$$r^2:$$", 0, 1, NULL, 0.3, "The R-squared of the polygenic risk score model.")),
            column(4, radioButtons(
              inputId = "lowestexclude2",
              label = "Choose lowest risk embryo or exclude high risk embroys",
@@ -112,34 +228,34 @@ calc_panel <- div(class = "well",
            ),
            conditionalPanel(
              condition = "input.lowestexclude2 == 'Exclude'",
-             slider_and_numeric("q2", "Quantile from which to exclude embryos:", 0, 1, 0.01, 0.5, paste("The quantile of the polygenic risk score from which we exclude embryos.")),
+             slider_and_numeric("q2", "Quantile from which to exclude embryos:", 0, 1, 0.01, 0.3, paste("The quantile of the polygenic risk score from which we exclude embryos.")),
            ), fluidRow(column(8, offset = 2, htmlOutput("summary"), align = "center"))),
            column(4,
            conditionalPanel(
              condition = "input.type2 == 'Conditional'",
-             slider_and_numeric("qf2", "Father's polygenic risk score quantile:", 0, 100, 1, 5, paste("Father's PRS quantile.")),
-             slider_and_numeric("qm2", "Mother's polygenic risk score quantile:", 0, 100, 1, 5, paste("Mother's PRS quantile.")),
+             slider_and_numeric("qf2", "Father's polygenic risk score quantile:", 0, 100, 1, 90, paste("Father's polygenic risk score quantile.")),
+             slider_and_numeric("qm2", "Mother's polygenic risk score quantile:", 0, 100, 1, 90, paste("Mother's polygenic risk score quantile.")),
            ),
            conditionalPanel(
              condition = "input.type2 == 'Family History'",
-             slider_and_numeric("h2", "$h^2:$", 0, 1, 0.01, 0.5, "The heritability of the disease."),
+             slider_and_numeric("h2", "$h^2:$", 0, 1, 0.01, 0.4, "The heritability of the disease."),
              checkboxInput("df2",
                            "Father has the disease"),
              checkboxInput("dm2",
                            "Mother has the disease"),
-             slider_and_numeric("samples", "Number of monte carlo samples:", 5000, 300000, 10, 10000, "The number of simulations")))))
+             slider_and_numeric("samples", "Number of monte carlo samples:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimates, but might take longer to run.")))))
 
 calc_two_traits <- div(class = "well", fluidRow(column(4,
-                                                       slider_and_numeric("N_2", "Number of embryos:", 2, 100, 1, 5, NULL),
-                                                       slider_and_numeric("rho", '$\\rho$, the genetic correlation between the diseases:', -0.99, 0.99, 0.01, 0, "The correlation between the two diseases."),
-                                                       slider_and_numeric("samples_2", "Number of monte carlo samples:", 5000, 300000, 10, 10000, "The number of simulations.")),
+                                                       slider_and_numeric("N_2", "Number of embryos:", 2, 20, 1, 5, "The number of embryos available for selection."),
+                                                       slider_and_numeric("rho", '$\\rho$, the genetic correlation between the diseases:', -0.99, 0.99, 0.01, 0, "The genetic correlation between the two diseases."),
+                                                       slider_and_numeric("samples_2", "Number of monte carlo samples:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimates, but might take longer to run.")),
                                                 column(4, 
-                                                       slider_and_numeric("r2_1", "$$r^2 ~ \\text{disease 1:}$$", 0, 1, 0.01, 0.5, "The R-squared of the polygenic risk score model for the first disease"),
-                                                       slider_and_numeric("r2_2", "$$r^2 ~ \\text{disease 2:}$$", 0, 1, 0.01, 0.5, "The R-squared of the polygenic risk score model for the second disease"),
+                                                       slider_and_numeric("r2_1", "$$r^2 ~ \\text{disease 1:}$$", 0, 1, 0.01, 0.3, "The R-squared of the polygenic risk score model for the first disease."),
+                                                       slider_and_numeric("r2_2", "$$r^2 ~ \\text{disease 2:}$$", 0, 1, 0.01, 0.3, "The R-squared of the polygenic risk score model for the second disease."),
                                                        fluidRow(column(8, offset = 2, htmlOutput("two_traits"), align = "center"))),
                                                 column(4, 
-                                                       slider_and_numeric("K_1", "Prevalence of disease 1:", 0, 1, 0.01, 0.5, NULL),
-                                                       slider_and_numeric("K_2", "Prevalence of disease 2:", 0, 1, 0.01, 0.5, NULL))))
+                                                       slider_and_numeric("K_1", "Prevalence of disease 1:", 0.001, 0.2, unique(round(exp(seq(log(0.01), log(0.2), length = 500)), digits = 4)), 0.01, "How prevalent is the first disease in the population? 0.01 means 1% has the disease, while 0.2 means 20% of the population has the disease."),
+                                                       slider_and_numeric("K_2", "Prevalence of disease 2:", 0.001, 0.2, unique(round(exp(seq(log(0.01), log(0.2), length = 500)), digits = 4)), 0.01, "How prevalent is the second disease in the population? 0.01 means 1% has the disease, while 0.2 means 20% of the population has the disease."))))
 
 
 
@@ -151,7 +267,8 @@ ui <- fluidPage(
       processEscapes: true
     }
   });
-</script>")),
+  </script>")),
+  
   shinyjs::useShinyjs(),
   withMathJax(),
   tabsetPanel(
