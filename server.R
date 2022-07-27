@@ -3,23 +3,27 @@ library(ggplot2)
 
 source("EmbryoSelection.R")
 server <- function(input, output, session) {
-  showModal(modalDialog(p("We use the liability threshold model, where we assume that the underlying disease has a liability
-                            which is a linear function of the genetic effect + residual.
-                            We assume that there are n embryos, with liability
-                            $y_i = x_i + c + \\epsilon, i \\in (1, ..., n)$, where $c \\sim N(0, \\frac{r_{ps}^2}{2})$ is the
-                            genetic effect shared by all of the embryos, $$x_i \\sim N(0, \\frac{r_{ps}^2}{2})$$
-                            is the specific genetic effect of each embryo, and $\\epsilon_i \\sim N(0, 1-r_{ps}^2)$
-                            is the residual.
-                            "),
-                        p("An individual has the disease whenever his $y$ is larger than some threshold $P(\\text{Disease}) = P(y > z_k) = K$, where $z_k$ is the (1-k) quantile of a normal distribution and K is the prevalence of the disease in the population."),
-                        p("See the paper for the full details."),
-    checkboxInput("accept", "Accept"),
-    "The results are for research purposes only, and should not be used to guide clinical decisions.",
-    checkboxInput("accept2", "Accept"), easyClose = F, footer = NULL))
+  accepeted <- F
+  modal <- modalDialog(h1("Important notes:"), 
+                       HTML("<ol>
+       <li>Our risk estimates are based on the liability threshold model from statistical genetics. They are not directly based on real epidemiological data.</li>
+       <li>Under the model, a disease is assumed to have an underlying, continuous liability. The liability is assumed to be normally distributed and to represent the sum of additive genetic and environmental risk factors. Under the model, an individual is affected if his or her liability exceeds a threshold.</li>
+       <li>The model assumes that each adult individual is either affected or unaffected. Both the prevalence parameter and the risk estimated by the application represent the proportion of affected adults.</li>
+       <li>The model assumes that a PRS explains a proportion $R^2$ of the variance in the liability in the population. This parameter, which quantifies the accuracy of the score, should already incorporate any reduction in the accuracy of the score due to genotyping errors, an application of the score in a population of non-European descent, an elimination of environmental correlates of the score in the setting of comparing sibling embryos, and other factors.</li>
+       <li>All embryos in the model are assumed to have the potential to lead to live birth when transferred. If you instead have, for example, the number of blastocysts, please adjust it accordingly based on specifics of your given case. We assume a single embryo transfer.</li>
+       <li>We assume that the parents screen the embryos for a <b>single disease</b>. We assume random mating (i.e., no assortative mating related to the disease being screened). The application does not provide information on the likelihood of increasing the risk of other diseases due to selection. See our paper for more details.</li>
+       <li>Finally, the application does not attempt to address any of the ethical, social, and legal problems that may be associated with screening IVF embryos with polygenic risk scores.</li>
+       </ol>"),
+                       p("Please confirm that:"),
+                       HTML("<ol>
+       <li>You read and understood the above notes.</li>
+       <li>You understand that the application is intended for research purposes only and is not intended to guide clinical decision making.</li>
+       </ol>"), checkboxInput("accept", "Accept"), easyClose = F, footer = NULL, size = "l")
 
-  observeEvent(input$accept | input$accept2, {
-    req(input$accept & input$accept2)
+  observeEvent(input$accept, {
+    req(input$accept)
     removeModal()
+    accepeted <<- T
   })
 
   observeEvent(input$lowestexclude, {
@@ -30,8 +34,8 @@ server <- function(input, output, session) {
     }
     else {
       # withMathJax(updateSelectInput(session, "x_var", choices = c("r2", "Disease prevalence", "Number of embryos", "Quantile")))
-      withMathJax(updateRadioButtons(session, "x_var", choiceNames = c("R-squared", "Disease prevalence", "Number of embryos", "Quantile"),
-                                     choiceValues = c("r2", "Disease prevalence", "Number of embryos", "Quantile"), inline = T))
+      withMathJax(updateRadioButtons(session, "x_var", choiceNames = c("R-squared", "Disease prevalence", "Number of embryos", "Percentile"),
+                                     choiceValues = c("r2", "Disease prevalence", "Number of embryos", "Percentile"), inline = T))
     }
   })
   
@@ -54,7 +58,7 @@ server <- function(input, output, session) {
       shinyjs::show("K")
       shinyjs::show("q")
     }
-    else if (input$x_var == "Quantile") {
+    else if (input$x_var == "Percentile") {
       shinyjs::hide("q")
       shinyjs::show("N")
       shinyjs::show("K")
@@ -63,6 +67,7 @@ server <- function(input, output, session) {
   })
 
   output$distPlot <- renderPlot({
+    if (!accepeted) showModal(modal)
     # output$distPlot <- renderPlotly({
     # selectInput("x_var", "Variable for x axis", choices = c("r2", "K", "N")),
     if (input$lowestexclude == "Lowest") {
@@ -87,7 +92,7 @@ server <- function(input, output, session) {
       x_lab <- "Number of embryos"
     }
     else if(selected_x == "Disease prevalence") {
-      x <- exp(seq(log(0.01), log(0.2), length = 50))
+      x <- exp(seq(log(0.001), log(0.3), length = 50))
       # y <- sapply(x, function(x) risk_reduction_lowest(input$r, x, n = input$N))
       if (input$lowestexclude == "Lowest") {
         y <- sapply(x, function(x) risk_reduction_lowest(input$r, x, n = input$N))
@@ -100,7 +105,7 @@ server <- function(input, output, session) {
       # subtitle <- "Lowest strategy"
       x_lab <- "Disease prevalence"
     }
-    else if(selected_x == "r2" || selected_x == "$$r^2$$") {
+    else if(selected_x == "r2" || selected_x == "$$R^2$$") {
       x <- seq(0, 1, length = 50)
       # y <- sapply(x, function(x) risk_reduction_lowest(x, input$K, n = input$N))
       if (input$lowestexclude == "Lowest") {
@@ -113,45 +118,78 @@ server <- function(input, output, session) {
       }
       # subtitle <- "Lowest strategy"
       # x_lab <- "PRS r^2"
-      x_lab <- expression(r^2)
+      x_lab <- expression(R^2)
     }
-    else if (selected_x == "Quantile") {
+    else if (selected_x == "Percentile") {
       # q
       x <- seq(0, 1, length = 50)
       y <- sapply(x, function(x) risk_reduction_exclude(input$r, input$K, x, n = input$N))
       # if (input$relative_abs == "Absolute risk") y  <- y * input$K
       # subtitle <- "Exclude strategy"
-      x_lab <- "Quantile to exclude"
+      x_lab <- "Percentile to exclude"
     }
     else {
       print("Error!")
       print(selected_x)
     }
     
-    ggplot(mapping = aes(x, y)) +
-      geom_point() +
-      geom_line() +
-      theme_minimal() +
-      labs(
-        title = "Risk reduction",
-        subtitle = subtitle,
-        x = x_lab,
-        y = "Risk reduction"
-      ) +
-      theme(
-        plot.subtitle = element_text(size = 22, hjust = 0.5),
-        plot.title = element_text(size = 25, hjust = 0.5),
-        axis.title.x = element_text(size = 20),
-        axis.title.y = element_text(size = 20),
-        axis.text = element_text(size = 15),
-        panel.background = element_rect(fill = "#f5f5f5", color = NA),
-        plot.background = element_rect(fill = "#f5f5f5", color = NA)
-      ) +
-      scale_y_continuous(name = "Relative risk reduction",
-                         sec.axis = sec_axis(~.*ifelse(selected_x == "K", x, input$K), name = "Absolute risk reduction"))
+    if(selected_x == "Disease prevalence") {
+      ggplot() +
+        geom_point(mapping = aes(x, y, color = "Relative risk"), size = 3) +
+        geom_line(mapping = aes(x, y, color = "Relative risk")) +
+        geom_point(mapping = aes(x, y*x, color = "Absolute risk"), size = 3) +
+        geom_line(mapping = aes(x, y*x, color = "Absolute risk")) +
+        theme_minimal() +
+        labs(
+          title = "Risk reduction",
+          subtitle = subtitle,
+          x = x_lab,
+          y = "Risk reduction"
+        ) +
+        theme(
+          plot.subtitle = element_text(size = 22, hjust = 0.5),
+          plot.title = element_text(size = 25, hjust = 0.5),
+          axis.title.x = element_text(size = 20),
+          axis.title.y = element_text(size = 20),
+          axis.text = element_text(size = 15),
+          panel.background = element_rect(fill = "#f5f5f5", color = NA),
+          plot.background = element_rect(fill = "#f5f5f5", color = NA),
+          panel.grid.minor = element_line(colour = "darkgray"),
+          panel.grid.major = element_line(colour = "darkgray"),
+          legend.text = element_text(size = 16),
+          legend.title = element_blank()
+        ) +
+        scale_y_continuous(name = "Risk reduction")
+    }
+    else {
+      ggplot(mapping = aes(x, y)) +
+        geom_point(size = 3) +
+        geom_line() +
+        theme_minimal() +
+        labs(
+          title = "Risk reduction",
+          subtitle = subtitle,
+          x = x_lab,
+          y = "Risk reduction"
+        ) +
+        theme(
+          plot.subtitle = element_text(size = 22, hjust = 0.5),
+          plot.title = element_text(size = 25, hjust = 0.5),
+          axis.title.x = element_text(size = 20),
+          axis.title.y = element_text(size = 20),
+          axis.text = element_text(size = 15),
+          panel.background = element_rect(fill = "#f5f5f5", color = NA),
+          plot.background = element_rect(fill = "#f5f5f5", color = NA),
+          panel.grid.minor = element_line(colour = "darkgray"),
+          panel.grid.major = element_line(colour = "darkgray")
+        ) +
+        scale_y_continuous(name = "Relative risk reduction",
+                           sec.axis = sec_axis(~.*ifelse(selected_x == "K", x, input$K), name = "Absolute risk reduction")) 
+    }
   })
   
   output$summary <- renderPrint({
+    if (!accepeted) showModal(modal)
     # print(input$K2)
     cat("<div class = \"alert alert-info\">")
     if (input$type2 == "Risk reduction") {
@@ -183,7 +221,7 @@ server <- function(input, output, session) {
       cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp))
       cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong></p>", temp * input$K2))
       
-      cat(sprintf("<p><u>Number needed to screen</u>: <strong>%.4f</strong></p>", 1/(temp * input$K2)))
+      cat(sprintf("<p><u>Couples needed to screen</u>: <strong>%.0f</strong></p>", ceiling(1/(temp * input$K2))))
     }
     else if (input$type2 == "Conditional") {
       temp <-
@@ -191,8 +229,8 @@ server <- function(input, output, session) {
           input$r2,
           K = input$K2,
           n = input$N2,
-          qf = input$qf2,
-          qm = input$qm2,
+          qf = 1-input$qf2,
+          qm = 1-input$qm2,
           relative = T,
           parental_avg_given = F
         )
@@ -203,8 +241,8 @@ server <- function(input, output, session) {
             K = input$K2,
             q = input$q2,
             n = input$N2,
-            qf = input$qf2,
-            qm = input$qm2,
+            qf = 1-input$qf2,
+            qm = 1-input$qm2,
             relative = T
           )
       }
@@ -223,7 +261,7 @@ server <- function(input, output, session) {
       )
       cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp$rr))
       cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong></p>", temp$rr * temp$baseline))
-      cat(sprintf("<p><u>Number needed to screen</u>: <strong>%.4f</strong></p>", 1/(temp$rr * temp$baseline)))
+      cat(sprintf("<p><u>Couples needed to screen</u>: <strong>%.0f</strong></p>", ceiling(1/(temp$rr * temp$baseline))))
     }
     else {
       if (input$r2 > input$h2) {
@@ -260,23 +298,23 @@ server <- function(input, output, session) {
         }
         cat(
           sprintf(
-            "<p><u>Baseline risk</u>: <strong>%.4f(%.4f)</strong>\n</p>",
+            "<p><u>Baseline risk</u>: <strong>%.4f (%.4f)</strong>\n</p>",
             temp[1],
             temp[5]
           )
         )
         cat(
           sprintf(
-            "<p><u>Risk for specific strategy</u>: <strong>%.4f(%.4f)</strong>\n</p>",
+            "<p><u>Risk for specific strategy</u>: <strong>%.4f (%.4f)</strong>\n</p>",
             temp[2],
             temp[6]
           )
         )
         cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp[3]))
         cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong>\n</p>", temp[4]))
-        cat(sprintf("<p><u>Number needed to screen</u>: <strong>%.4f</strong>\n</p>", 1/temp[4]))
+        cat(sprintf("<p><u>Couples needed to screen</u>: <strong>%.0f</strong>\n</p>", ceiling(1/temp[4])))
         
-        cat(sprintf("<p style = \"color:red\">Based on %d simulations, estimated standard deviation in parentheses.</p>", input$samples))
+        cat(sprintf("<p style = \"color:red\">Based on %d simulations. Estimated standard deviation in parentheses.</p>", input$samples))
         if(temp[1] < temp[2]) {
           cat(sprintf("<p style = \"color:red\">Baseline risk is smaller than the strategy risk, so the sample size is probably too small.</p>", input$samples))
         }
@@ -297,11 +335,11 @@ server <- function(input, output, session) {
       simulate_lowest_risk_two_traits(input$r2_1, input$r2_2, input$rho, input$K_1, input$K_2, input$N_2, input$samples_2)
     cat(sprintf("<p><u>Relative risk reduction for disease 1</u>: <strong>%.4f</strong>\n</p>", temp[1]))
     cat(sprintf("<p><u>Absolute risk reduction for disease 1</u>: <strong>%.4f</strong>\n</p>", temp[2]))
-    cat(sprintf("<p><u>Number needed to screen for disease 1</u>: <strong>%.4f</strong>\n</p>", 1/temp[2]))
+    cat(sprintf("<p><u>Couples needed to screen for disease 1</u>: <strong>%.0f</strong>\n</p>", ceiling(1/temp[2])))
     
     cat(sprintf("<p><u>Relative risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, temp[3])))
     cat(sprintf("<p><u>Absolute risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, temp[4])))
-    cat(sprintf("<p><u>Number needed to screen for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, 1/temp[4])))
+    cat(sprintf("<p><u>Couples needed to screen for disease 2</u>: <strong>%.0f</strong>\n</p>", ifelse(input$rho == 0, 0, ceiling(1/temp[4]))))
     
     cat(sprintf("<p style = \"color:red\">Based on %d simulations.</p>", input$samples_2))
     cat("</div>")
