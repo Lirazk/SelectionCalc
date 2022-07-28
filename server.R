@@ -78,7 +78,7 @@ server <- function(input, output, session) {
     }
     selected_x <- input$x_var
     if(selected_x == "Number of embryos") {
-      x <- 1:20
+      x <- 2:20
       if (input$lowestexclude == "Lowest") {
         y <- sapply(x, function(x) risk_reduction_lowest(input$r, input$K, n = x))
         # if (input$relative_abs == "Absolute risk") y  <- y * input$K
@@ -106,7 +106,7 @@ server <- function(input, output, session) {
       x_lab <- "Disease prevalence"
     }
     else if(selected_x == "r2" || selected_x == "$$R^2$$") {
-      x <- seq(0, 1, length = 50)
+      x <- seq(0.01, 1, length = 50)
       # y <- sapply(x, function(x) risk_reduction_lowest(x, input$K, n = input$N))
       if (input$lowestexclude == "Lowest") {
         y <- sapply(x, function(x) risk_reduction_lowest(x, input$K, n = input$N))
@@ -122,7 +122,7 @@ server <- function(input, output, session) {
     }
     else if (selected_x == "Percentile") {
       # q
-      x <- seq(0, 1, length = 50)
+      x <- seq(0.01, 1, length = 50)
       y <- sapply(x, function(x) risk_reduction_exclude(input$r, input$K, x, n = input$N))
       # if (input$relative_abs == "Absolute risk") y  <- y * input$K
       # subtitle <- "Exclude strategy"

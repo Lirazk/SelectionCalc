@@ -23,7 +23,9 @@ risk_reduction_lowest = function(r2,K,n)
     y = dnorm(t)*pnorm(arg, lower.tail=F)^n
     return(y)
   }
-  risk = integrate(integrand_lowest,-Inf,Inf)$value
+  # risk/K, so if we want overall error < 1e-5, we need risk/K < 1e-5, so the integral error < K * 1e-5
+  # Let's do 4 digits?
+  risk = integrate(integrand_lowest,-Inf,Inf, abs.tol = K * 1e-4)$value
   reduction = (K-risk)/K
   # If abs risk: K-risk
   return(reduction)
@@ -71,8 +73,8 @@ risk_reduction_lowest_conditional = function(r2,K,n,qf,qm,relative=T,parental_av
 {
   r = sqrt(r2)
   zk = qnorm(K, lower.tail=F)
-  zqf = qnorm(qf/100)
-  zqm = qnorm(qm/100)
+  zqf = qnorm(qf)
+  zqm = qnorm(qm)
   if (parental_avg_given)
   {
     # It is assumed that what is given is directly the parental average, so that the paternal and maternal quantiles are the same (both representing the quantile of the parental average)
@@ -87,7 +89,8 @@ risk_reduction_lowest_conditional = function(r2,K,n,qf,qm,relative=T,parental_av
     y = dnorm(t)*pnorm(arg, lower.tail=F)^n
     return(y)
   }
-  risk = integrate(integrand_lowest_cond,-Inf,Inf,rel.tol=1e-9)$value
+  # risk = integrate(integrand_lowest_cond,-Inf,Inf,rel.tol=1e-9)$value
+  risk = integrate(integrand_lowest_cond,-Inf,Inf, abs.tol = baseline * 1e-4)$value
   if (relative) {
     reduction = (baseline-risk)/baseline
   } else {
@@ -101,8 +104,8 @@ risk_reduction_exclude_conditional = function(r2,K,q,n,qf,qm,relative=T)
   r = sqrt(r2)
   zk = qnorm(K, lower.tail=F)
   zq = qnorm(q, lower.tail=F)
-  zqf = qnorm(qf/100)
-  zqm = qnorm(qm/100)
+  zqf = qnorm(qf)
+  zqm = qnorm(qm)
   c = (zqf+zqm)/2 * r
   baseline= pnorm((zk-c)/sqrt(1-r^2/2),lower.tail=F)
   gamma = zq*sqrt(2) - c/(r/sqrt(2))
@@ -113,11 +116,13 @@ risk_reduction_exclude_conditional = function(r2,K,q,n,qf,qm,relative=T)
     return(y)
   }
   
-  internal_int = integrate(integrand_t,-Inf,gamma)$value
   denom = pnorm(gamma)
+  err <- (1e-4 * baseline * denom) / (2 * (1-(1-denom)^n))
+  internal_int = integrate(integrand_t,-Inf,gamma, abs.tol = err)$value
   numer = (1-(1-denom)^n) * internal_int
   term1 = numer/denom
   
+  err <- (1e-4 * baseline) / (2 * (1-(1-denom)^n))
   internal_int = integrate(integrand_t,gamma,Inf)$value
   term2 = (1-denom)^(n-1) * internal_int
   
