@@ -22,6 +22,7 @@
 
 # TODO
 # Call it: PGT-P outcome calculator (single disease).
+# Add tests.
 
 library(shiny)
 library(shinyWidgets)
@@ -90,7 +91,7 @@ helpPopup <- function(title, content,
 }
 
 about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
-                              HTML("<p>This application allows users to predict the expected risk reduction when selecting an IVF embryo for transfer based on polygenic risk scores (PRS) for a single disease. The model is described in <a href = \"https://doi.org/10.7554/elife.64716\">Lencz etc.</a></p>"),
+                              HTML("<p>This application allows users to predict the expected risk reduction when selecting an IVF embryo for transfer based on polygenic risk scores (PRS) for a single disease. The model is described in <a href = \"https://doi.org/10.7554/elife.64716\" target=\"_blank\" rel=\"noopener noreferrer\">Lencz et al.</a></p>"),
                               p("We provide estimates under two selection strategies."),
                               HTML("<ol>
                                    <li>Lowest risk prioritization: Selecting the embryo with the lowest PRS among all available embryos.</li>
@@ -101,7 +102,7 @@ about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               HTML("<ol>
                                    <li>$R^2$: The proportion of variance in liability to the disease explained by the PRS, which is a measure of the accuracy of the score. $R^2$ is currently between 5-10% for most common polygenic diseases.</li>
                                    <li>The disease prevalence: The proportion of individuals in the (adult) population affected by the disease.</li>
-                                   <li>The number of embryos: The number of viable embryos from which a single embryo is selected for transfer. Important note: the model assumes that each embryo transferred will be born. This parameter should therefore correspond to the number of live births expected to result from the given cycle.</li>
+                                   <li>The number of embryos: The number of viable embryos from which a single embryo is selected for transfer. Important note: the model assumes that each embryo transferred will be born. This parameter should therefore correspond to the number of live births expected from the given cycle.</li>
                                    <li>Quantile from which to exclude: In the “high-risk exclusion” strategy, this is the cutoff that defines embryos as high-risk. Embryos with PRS above that quantile are excluded. For example, if the parameter equals 10%, all embryos with PRS at the top 10% of the distribution of PRS in the population will be excluded.</li>
                                    </ol>"),
                               h2("Calculator mode"),
@@ -123,12 +124,16 @@ about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               # p("The only new variable here is $\\rho$, the genetic correlation between the two diseases."),
                               h2("Reference"),
                               HTML("<ol>
-                                   <li> <cite>Lencz, T., Backenroth, D., Granot-Hershkovitz, E., Green, A., Gettler, K., Cho, J. H., Weissbrod, O., Zuk, O., & Carmi, S. (2021). Utility of polygenic embryo screening for disease depends on the selection strategy. ELife, 10. <a href=\"https://doi.org/10.7554/elife.64716\">https://doi.org/10.7554/elife.64716</a> </cite> </li>
+                                   <li> <cite>Lencz, T., Backenroth, D., Granot-Hershkovitz, E., Green, A., Gettler, K., Cho, J. H., Weissbrod, O., Zuk, O., & Carmi, S. (2021). Utility of polygenic embryo screening for disease depends on the selection strategy. ELife, 10. <a href=\"https://doi.org/10.7554/elife.64716\" target=\"_blank\" rel=\"noopener noreferrer\">https://doi.org/10.7554/elife.64716</a> </cite> </li>
                                    </ol>"),
                               h2("Contact"),
+                              p("Please contact us if you find an error or have any suggestion."),
                               HTML("<p>Shai Carmi, <a href=\"mailto: shai.carmi@huji.ac.il\">shai.carmi@huji.ac.il</a></p>"),
                               HTML("<p>Liraz Klausner, <a href=\"mailto: liraz.klausner@mail.huji.ac.il\">liraz.klausner@mail.huji.ac.il</a></p>"),
-                              p("Braun School of Public Health, The Hebrew University of Jerusalem")))
+                              p("Braun School of Public Health, The Hebrew University of Jerusalem")),
+                              p(paste("Last update", max(format(file.info("ui.R")$mtime, "%Y-%m-%d"),
+                                                         format(file.info("server.R")$mtime, "%Y-%m-%d"),
+                                                         format(file.info("EmbryoSelection.R")$mtime, "%Y-%m-%d")))))
 
 plot_panel <- div(class = "well",
   fluidRow(column(4,
