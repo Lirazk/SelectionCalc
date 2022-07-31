@@ -65,9 +65,18 @@ server <- function(input, output, session) {
       shinyjs::show("r")
     }
   })
+  
+  filter_input <- debounce(reactive({
+    list(r2 = input$r,
+         K2 = input$K,
+         N = input$N,
+         q = input$q)
+  }), 500)
 
   output$distPlot <- renderPlot({
     if (!accepeted) showModal(modal)
+    
+    filts <- filter_input()
     # output$distPlot <- renderPlotly({
     # selectInput("x_var", "Variable for x axis", choices = c("r2", "K", "N")),
     if (input$lowestexclude == "Lowest") {
@@ -80,11 +89,11 @@ server <- function(input, output, session) {
     if(selected_x == "Number of embryos") {
       x <- 2:20
       if (input$lowestexclude == "Lowest") {
-        y <- sapply(x, function(x) risk_reduction_lowest(input$r, input$K, n = x))
+        y <- sapply(x, function(x) risk_reduction_lowest(filts$r, filts$K, n = x))
         # if (input$relative_abs == "Absolute risk") y  <- y * input$K
       }
       else {
-        y <- sapply(x, function(x) risk_reduction_exclude(r2 = input$r, K = input$K, q = input$q, n = x))
+        y <- sapply(x, function(x) risk_reduction_exclude(r2 = filts$r, K = filts$K, q = filts$q, n = x))
         # if (input$relative_abs == "Absolute risk") y  <- y * input$K
       }
       
@@ -95,11 +104,11 @@ server <- function(input, output, session) {
       x <- exp(seq(log(0.001), log(0.3), length = 50))
       # y <- sapply(x, function(x) risk_reduction_lowest(input$r, x, n = input$N))
       if (input$lowestexclude == "Lowest") {
-        y <- sapply(x, function(x) risk_reduction_lowest(input$r, x, n = input$N))
+        y <- sapply(x, function(x) risk_reduction_lowest(filts$r, x, n = filts$N))
         # if (input$relative_abs == "Absolute risk") y  <- y * x
       }
       else {
-        y <- sapply(x, function(x) risk_reduction_exclude(r2 = input$r, K = x, q = input$q, n = input$N))
+        y <- sapply(x, function(x) risk_reduction_exclude(r2 = filts$r, K = x, q = filts$q, n = filts$N))
         # if (input$relative_abs == "Absolute risk") y  <- y * x
       }
       # subtitle <- "Lowest strategy"
@@ -109,11 +118,11 @@ server <- function(input, output, session) {
       x <- seq(0.01, 1, length = 50)
       # y <- sapply(x, function(x) risk_reduction_lowest(x, input$K, n = input$N))
       if (input$lowestexclude == "Lowest") {
-        y <- sapply(x, function(x) risk_reduction_lowest(x, input$K, n = input$N))
+        y <- sapply(x, function(x) risk_reduction_lowest(x, filts$K, n = input$N))
         # if (input$relative_abs == "Absolute risk") y  <- y * input$K
       }
       else {
-        y <- sapply(x, function(x) risk_reduction_exclude(x, input$K, input$q, n = input$N))
+        y <- sapply(x, function(x) risk_reduction_exclude(x, filts$K, filts$q, n = filts$N))
         # if (input$relative_abs == "Absolute risk") y  <- y * input$K
       }
       # subtitle <- "Lowest strategy"
@@ -123,7 +132,7 @@ server <- function(input, output, session) {
     else if (selected_x == "Percentile") {
       # q
       x <- seq(0.01, 1, length = 50)
-      y <- sapply(x, function(x) risk_reduction_exclude(input$r, input$K, x, n = input$N))
+      y <- sapply(x, function(x) risk_reduction_exclude(filts$r, filts$K, x, n = filts$N))
       # if (input$relative_abs == "Absolute risk") y  <- y * input$K
       # subtitle <- "Exclude strategy"
       x_lab <- "Percentile to exclude"

@@ -1,5 +1,6 @@
 library(MASS)
 library(mvnfast)
+library(OwenQ)
 
 # Some silly micro-optimization instead of using one more general log(pnorm(b) - pnorm(a)), 
 # should also be more accurate though.
@@ -41,6 +42,19 @@ risk_reduction_exclude = function(r2,K,q,n)
     y = dnorm(t)*pnorm((zk-r/sqrt(2)*(u+t))/sqrt(1-r2),lower.tail=F)
     return(y)
   }
+  # Replacement for integrand_t, should be numerically better.
+  inner_integral <- function(x, a, b) {
+    if (is.infinite(x)) {
+      OwenT(x, a/(x * sqrt(1+b^2))) + OwenT(a/sqrt(1+b^2), (x * sqrt(1+b^2)) / a) -
+        # OwenT(x, b) - OwenT(a/sqrt(1+b^2), (a*b+x*(1+b^2))/a) + pnorm(x) * pnorm(a / sqrt(1+b^2))
+        OwenT(a/sqrt(1+b^2), (a*b+x*(1+b^2))/a) + pnorm(x) * pnorm(a / sqrt(1+b^2))
+    }
+    else {
+      OwenT(x, a/(x * sqrt(1+b^2))) + OwenT(a/sqrt(1+b^2), (x * sqrt(1+b^2)) / a) -
+        OwenT(x, (a+b*x)/x) - OwenT(a/sqrt(1+b^2), (a*b+x*(1+b^2))/a) + pnorm(x) * pnorm(a / sqrt(1+b^2))
+    }
+  }
+  
   integrand_u = function(us)
   {
     y = numeric(length(us))
@@ -49,21 +63,34 @@ risk_reduction_exclude = function(r2,K,q,n)
     dnorm_u <- dnorm(us)
     denom <- ifelse(denom==0, 1e-300, denom) # Avoid dividing by zero
     
+    a <- (zk - r/sqrt(2) * us) / sqrt(1-r2)
+    b <- -(r/sqrt(2)) / sqrt(1-r2)
+    
     for (i in seq_along(us))
     {
       u = us[i]
       beta <- beta_vec[i]
-      internal_int = integrate(integrand_t,-Inf,beta,u)$value
+      # internal_int = integrate(integrand_t,-Inf,beta,u, abs.tol = 1e-10)$value
+      
+      internal_int = ifelse(r2 != 1, pnorm(beta) - inner_integral(beta, a[i], b) + inner_integral(-Inf, a[i], b),
+                            ifelse(beta < sqrt(2) / r * zk - u, 0, pnorm(beta) - pnorm(sqrt(2) / r * zk - u)))
       numer = dnorm_u[i]*(1-(1-denom[i])^n) * internal_int
       term1 = numer/denom[i]
       
-      internal_int = integrate(integrand_t,beta,Inf,u)$value
+      # Probably doesn't matter, but also numerically more stable
+      # term1 <- exp(dnorm(u, log = T) + VGAM::log1mexp(-n*pnorm(beta, lower.tail = F, log.p = T)) - 
+      #                pnorm(beta, log.p = T)) * internal_int
+      
+      # internal_int = integrate(integrand_t,beta,Inf,u, abs.tol = 1e-10)$value
+      internal_int <- ifelse(r2 != 1, 1 - pnorm(beta) - inner_integral(Inf, a[i], b) + inner_integral(beta, a[i], b),
+                             ifelse(beta < sqrt(2) / r * zk - u, 1-pnorm(sqrt(2) / r * zk - u), 1-pnorm(beta)))
       term2 = dnorm_u[i]*(1-denom[i])^(n-1) * internal_int
       y[i] = term1 + term2
+      # print(sprintf("%f", y[i]))
     }
     return(y)
   }
-  risk = integrate(integrand_u,-Inf,Inf)$value
+  risk = integrate(integrand_u,-Inf,Inf, abs.tol = K * 1e-4)$value
   reduction = (K-risk)/K
   # K-risk
   return(reduction)
