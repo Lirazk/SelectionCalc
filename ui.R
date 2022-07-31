@@ -13,7 +13,7 @@
 # Add space before parentheses
 # Plot - Prevalence by RR, does it make sense? shouldn't the abs risk and RR be different?
 # Add question marks when plot
-# Disease prevalence question mark - means that 1% of the population has the disease
+# Disease prevalence question mark - means that 1% of the population have the disease
 # The proportion of the variance in the liability of the disease explained by the polygenic risk score. It is a measure of the accuracy of the square. Typically equal 0.05-0.1.
 # h^2 - add "only relevant when conditioning on the parents' diseases status"
 # parents' polygenic risk score 
@@ -124,16 +124,16 @@ about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               # p("The only new variable here is $\\rho$, the genetic correlation between the two diseases."),
                               h2("Reference"),
                               HTML("<ol>
-                                   <li> <cite>Lencz, T., Backenroth, D., Granot-Hershkovitz, E., Green, A., Gettler, K., Cho, J. H., Weissbrod, O., Zuk, O., & Carmi, S. (2021). Utility of polygenic embryo screening for disease depends on the selection strategy. ELife, 10. <a href=\"https://doi.org/10.7554/elife.64716\" target=\"_blank\" rel=\"noopener noreferrer\">https://doi.org/10.7554/elife.64716</a> </cite> </li>
+                                   <li> <cite>Lencz, T., Backenroth, D., Granot-Hershkovitz, E., Green, A., Gettler, K., Cho, J. H., Weissbrod, O., Zuk, O., & Carmi, S. (2021). Utility of polygenic embryo screening for disease depends on the selection strategy. eLife, 10. <a href=\"https://doi.org/10.7554/elife.64716\" target=\"_blank\" rel=\"noopener noreferrer\">https://doi.org/10.7554/elife.64716</a> </cite> </li>
                                    </ol>"),
                               h2("Contact"),
                               p("Please contact us if you find an error or have any suggestion."),
                               HTML("<p>Shai Carmi, <a href=\"mailto: shai.carmi@huji.ac.il\">shai.carmi@huji.ac.il</a></p>"),
                               HTML("<p>Liraz Klausner, <a href=\"mailto: liraz.klausner@mail.huji.ac.il\">liraz.klausner@mail.huji.ac.il</a></p>"),
                               p("Braun School of Public Health, The Hebrew University of Jerusalem")),
-                              p(paste("Last update", max(format(file.info("ui.R")$mtime, "%Y-%m-%d"),
-                                                         format(file.info("server.R")$mtime, "%Y-%m-%d"),
-                                                         format(file.info("EmbryoSelection.R")$mtime, "%Y-%m-%d")))))
+                              p(paste("Last update", max(format(max(file.info("ui.R")$mtime,
+                                                                    file.info("server.R")$mtime,
+                                                                    file.info("EmbryoSelection.R")$mtime), "%d-%m-%Y")))))
 
 plot_panel <- div(class = "well",
   fluidRow(column(4,
@@ -172,7 +172,7 @@ plot_panel <- div(class = "well",
   
     slider_and_numeric("K", "Disease prevalence:", 0.001, 0.3, 
                        sort(unique(c(seq(0.001, 0.3, 0.001), round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)))), 0.001, 
-                       "How prevalent is the disease in the population? 0.01 means that 1% of the population has the disease, and 0.2 means that 20% of the population has the disease."),
+                       "How prevalent is the disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."),
     # column(4, sliderInput(
     #   inputId = "N",
     #   label = "Number of embryos:",
@@ -192,7 +192,7 @@ plot_panel <- div(class = "well",
       #   step = 0.01,
       #   value = 0.3
       # ))
-      slider_and_numeric("q", "Percentile from which to exclude embryos:", 0.01, 0.99, 0.01, 0.3, paste("Embryos with PRS above that percentile are excluded. For example, if the parameter equals 10%, all embryos with PRS at the top 10% of the distribution of PRS in the population will be excluded. If no embryo is below the threshold we select one randomly."))
+      slider_and_numeric("q", "Percentile from which to exclude embryos:", 0.01, 0.99, 0.01, 0.3, paste("Embryos with PRS above that percentile are excluded. For example, if the parameter equals 0.1, all embryos with PRS at the top 10% of the distribution of PRS in the population will be excluded. If no embryo is below the threshold we select one randomly."))
     )),
   ),
   fluidRow(column(12, plotOutput(outputId = "distPlot", height = 600)))
@@ -271,7 +271,7 @@ calc_panel <- div(class = "well",
   fluidRow(column(4, slider_and_numeric("N2", "Number of embryos:", 2, 10, 1, 5, "The number of embryos available for selection."),
                   # slider_and_numeric("K2", "Disease prevalence:", 0.01, 1, 0.01, 0.5, NULL),
                   slider_and_numeric("K2", "Disease prevalence:", 0.001, 0.3, 
-                                     sort(unique(c(seq(0.001, 0.3, 0.001), round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)))), 0.001, "How prevalent is the disease in the population? 0.01 means that 1% of the population has the disease, and 0.2 means that 20% of the population has the disease."),
+                                     sort(unique(c(seq(0.001, 0.3, 0.001), round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)))), 0.001, "How prevalent is the disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."),
                   slider_and_numeric("r2", "$$R^2:$$", 0.01, 1, NULL, 0.05, "The proportion of the variance in the liability of the disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1.")),
            column(4, radioButtons(
              inputId = "lowestexclude2",
@@ -286,34 +286,34 @@ calc_panel <- div(class = "well",
            ),
            conditionalPanel(
              condition = "input.lowestexclude2 == 'Exclude'",
-             slider_and_numeric("q2", "Percentile from which to exclude embryos:", 0.01, 0.99, 0.01, 0.3, paste("Embryos with PRS above that percentile are excluded. For example, if the parameter equals 10%, all embryos with PRS at the top 10% of the distribution of PRS in the population will be excluded. If no embryo is below the threshold we select one randomly.")),
+             slider_and_numeric("q2", "Percentile from which to exclude embryos:", 0.01, 0.99, 0.01, 0.3, paste("Embryos with PRS above that percentile are excluded. For example, if the parameter equals 0.1, all embryos with PRS at the top 10% of the distribution of the PRS in the population will be excluded. If no embryo is below the threshold we select one randomly.")),
            ), fluidRow(column(10, offset = 2, htmlOutput("summary"), align = "center"))),
            column(4,
            conditionalPanel(
              condition = "input.type2 == 'Conditional'",
-             slider_and_numeric("qf2", "Father's polygenic risk score percentile:", 0.01, 0.99, 0.01, 0.5, paste("For example, if this parameter equal 0.05, the PRS of the father is at the top 5% of the distribution of PRS in the population.")),
-             slider_and_numeric("qm2", "Mother's polygenic risk score percentile:", 0.01, 0.99, 0.01, 0.5, paste("For example, if this parameter equal 0.05, the PRS of the mother is at the top 5% of the distribution of PRS in the population.")),
+             slider_and_numeric("qf2", "Father's polygenic risk score percentile:", 0.01, 0.99, 0.01, 0.5, paste("For example, if this parameter equal 0.05, the PRS of the father is at the top 5% of the distribution of the PRS in the population.")),
+             slider_and_numeric("qm2", "Mother's polygenic risk score percentile:", 0.01, 0.99, 0.01, 0.5, paste("For example, if this parameter equal 0.05, the PRS of the mother is at the top 5% of the distribution of the PRS in the population.")),
            ),
            conditionalPanel(
              condition = "input.type2 == 'Family History'",
-             slider_and_numeric("h2", "$h^2:$", 0.01, 1, 0.01, 0.4, "The heritability of the disease. Only relevant when conditioning on the parents' diseases status"),
+             slider_and_numeric("h2", "$h^2:$", 0.01, 1, 0.01, 0.4, "The heritability of the disease. Only relevant when conditioning on the parents' disease status"),
              checkboxInput("df2",
                            "Father has the disease"),
              checkboxInput("dm2",
                            "Mother has the disease"),
-             slider_and_numeric("samples", "Number of monte carlo samples:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")))))
+             slider_and_numeric("samples", "Number of monte carlo draws:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")))))
 
 calc_two_traits <- div(class = "well", fluidRow(column(4,
                                                        slider_and_numeric("N_2", "Number of embryos:", 2, 10, 1, 5, "The number of embryos available for selection."),
                                                        slider_and_numeric("rho", '$\\rho$, the genetic correlation between the diseases:', -0.99, 0.99, 0.01, 0, "The genetic correlation between the two diseases."),
-                                                       slider_and_numeric("samples_2", "Number of monte carlo samples:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")),
+                                                       slider_and_numeric("samples_2", "Number of monte carlo draws:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")),
                                                 column(4, 
                                                        slider_and_numeric("r2_1", "$$R^2 ~ \\text{disease 1:}$$", 0.01, 1, 0.001, 0.05, "The proportion of the variance in the liability of the first disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
                                                        slider_and_numeric("r2_2", "$$R^2 ~ \\text{disease 2:}$$", 0.01, 1, 0.001, 0.05, "The proportion of the variance in the liability of the second disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
                                                        fluidRow(column(8, offset = 2, htmlOutput("two_traits"), align = "center"))),
                                                 column(4, 
-                                                       slider_and_numeric("K_1", "Prevalence of disease 1:", 0.001, 0.3, unique(round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)), 0.001, "How prevalent is the first disease in the population? 0.01 means that 1% of the population has the disease, and 0.2 means that 20% of the population has the disease."),
-                                                       slider_and_numeric("K_2", "Prevalence of disease 2:", 0.001, 0.3, unique(round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)), 0.001, "How prevalent is the second disease in the population? 0.01 means that 1% of the population has the disease, and 0.2 means that 20% of the population has the disease."))))
+                                                       slider_and_numeric("K_1", "Prevalence of disease 1:", 0.001, 0.3, unique(round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)), 0.001, "How prevalent is the first disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."),
+                                                       slider_and_numeric("K_2", "Prevalence of disease 2:", 0.001, 0.3, unique(round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)), 0.001, "How prevalent is the second disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."))))
 
 
 

@@ -9,10 +9,10 @@ server <- function(input, output, session) {
        <li>Our risk estimates are based on the liability threshold model from statistical genetics. They are not directly based on real epidemiological data.</li>
        <li>Under the model, a disease is assumed to have an underlying, continuous liability. The liability is assumed to be normally distributed and to represent the sum of additive genetic and environmental risk factors. Under the model, an individual is affected if his or her liability exceeds a threshold.</li>
        <li>The model assumes that each adult individual is either affected or unaffected. Both the prevalence parameter and the risk estimated by the application represent the proportion of affected adults.</li>
-       <li>The model assumes that a PRS explains a proportion $R^2$ of the variance in the liability in the population. This parameter, which quantifies the accuracy of the score, should already incorporate any reduction in the accuracy of the score due to genotyping errors, an application of the score in a population of non-European descent, an elimination of environmental correlates of the score in the setting of comparing sibling embryos, and other factors.</li>
+       <li>The model assumes that a PRS explains a proportion $R^2$ of the variance in the liability in the population. This parameter, which quantifies the accuracy of the score, should already incorporate any reduction in the accuracy of the score due to genotyping errors, an application of the score in populations of non-European descent, elimination of environmental correlates of the score in the setting of comparing sibling embryos, and other factors.</li>
        <li>All embryos in the model are assumed to have the potential to lead to live birth when transferred. If you instead have, for example, the number of blastocysts, please adjust it accordingly based on specifics of your given case. We assume a single embryo transfer.</li>
-       <li>We assume that the parents screen the embryos for a <b>single disease</b>. We assume random mating (i.e., no assortative mating related to the disease being screened). The application does not provide information on the likelihood of increasing the risk of other diseases due to selection. See our paper for more details.</li>
-       <li>Finally, the application does not attempt to address any of the ethical, social, and legal problems that may be associated with screening IVF embryos with polygenic risk scores.</li>
+       <li>We assume that the parents screen the embryos for a <b>single disease</b>. We assume random mating (i.e., no assortative mating related to the disease being screened). The calculator does not provide information on the likelihood of increasing the risk of other diseases due to selection. See our paper for more details.</li>
+       <li>Finally, we note that screening IVF embryos with polygenic risk scores may be associated with ethical, social, and legal problems. Please see our paper for more details.</li>
        </ol>"),
                        p("Please confirm that:"),
                        HTML("<ol>
@@ -323,7 +323,7 @@ server <- function(input, output, session) {
         cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong>\n</p>", temp[4]))
         cat(sprintf("<p><u>Couples needed to screen</u>: <strong>%.0f</strong>\n</p>", ceiling(1/temp[4])))
         
-        cat(sprintf("<p style = \"color:red\">Based on %d simulations. Estimated standard deviation in parentheses.</p>", input$samples))
+        cat(sprintf("<p style = \"color:red\">Based on %d draws. Estimated standard deviation in parentheses.</p>", input$samples))
         if(temp[1] < temp[2]) {
           cat(sprintf("<p style = \"color:red\">Baseline risk is smaller than the strategy risk, so the sample size is probably too small.</p>", input$samples))
         }
