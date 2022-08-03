@@ -90,6 +90,12 @@ helpPopup <- function(title, content,
   )
 }
 
+disclamir_and_date_text <- HTML("<p align=\"center\"><b><font color = \"red\">The application is intended for research purposes only and is not intended to guide clinical decision making</font></b><br>",
+                                paste("Last update", max(format(max(file.info("ui.R")$mtime,
+                                                                    file.info("server.R")$mtime,
+                                                                    file.info("EmbryoSelection.R")$mtime), "%d-%m-%Y"))),
+                                "</p>")
+
 about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               HTML("<p>This application allows users to predict the expected risk reduction when selecting an IVF embryo for transfer based on polygenic risk scores (PRS) for a single disease. The model is described in <a href = \"https://doi.org/10.7554/elife.64716\" target=\"_blank\" rel=\"noopener noreferrer\">Lencz et al.</a></p>"),
                               p("We provide estimates under two selection strategies."),
@@ -130,10 +136,8 @@ about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               p("Please contact us if you find an error or have any suggestion."),
                               HTML("<p>Shai Carmi, <a href=\"mailto: shai.carmi@huji.ac.il\">shai.carmi@huji.ac.il</a></p>"),
                               HTML("<p>Liraz Klausner, <a href=\"mailto: liraz.klausner@mail.huji.ac.il\">liraz.klausner@mail.huji.ac.il</a></p>"),
-                              p("Braun School of Public Health, The Hebrew University of Jerusalem")),
-                              p(paste("Last update", max(format(max(file.info("ui.R")$mtime,
-                                                                    file.info("server.R")$mtime,
-                                                                    file.info("EmbryoSelection.R")$mtime), "%d-%m-%Y")))))
+                              p("Braun School of Public Health, The Hebrew University of Jerusalem"),
+                              disclamir_and_date_text))
 
 plot_panel <- div(class = "well",
   fluidRow(column(4,
@@ -195,7 +199,8 @@ plot_panel <- div(class = "well",
       slider_and_numeric("q", "Percentile from which to exclude embryos:", 0.01, 0.99, 0.01, 0.3, paste("Embryos with PRS above that percentile are excluded. For example, if the parameter equals 0.1, all embryos with PRS at the top 10% of the distribution of PRS in the population will be excluded. If no embryo is below the threshold we select one randomly."))
     )),
   ),
-  fluidRow(column(12, plotOutput(outputId = "distPlot", height = 600)))
+  fluidRow(column(12, plotOutput(outputId = "distPlot", height = 600))),
+  disclamir_and_date_text
 )
 
 calc_panel <- div(class = "well",
@@ -301,7 +306,8 @@ calc_panel <- div(class = "well",
                            "Father has the disease"),
              checkboxInput("dm2",
                            "Mother has the disease"),
-             slider_and_numeric("samples", "Number of monte carlo draws:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")))))
+             slider_and_numeric("samples", "Number of monte carlo draws:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")))),
+  disclamir_and_date_text)
 
 calc_two_traits <- div(class = "well", fluidRow(column(4,
                                                        slider_and_numeric("N_2", "Number of embryos:", 2, 10, 1, 5, "The number of embryos available for selection."),
@@ -313,7 +319,8 @@ calc_two_traits <- div(class = "well", fluidRow(column(4,
                                                        fluidRow(column(8, offset = 2, htmlOutput("two_traits"), align = "center"))),
                                                 column(4, 
                                                        slider_and_numeric("K_1", "Prevalence of disease 1:", 0.001, 0.3, unique(round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)), 0.001, "How prevalent is the first disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."),
-                                                       slider_and_numeric("K_2", "Prevalence of disease 2:", 0.001, 0.3, unique(round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)), 0.001, "How prevalent is the second disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."))))
+                                                       slider_and_numeric("K_2", "Prevalence of disease 2:", 0.001, 0.3, unique(round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)), 0.001, "How prevalent is the second disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."))),
+                       disclamir_and_date_text)
 
 
 
