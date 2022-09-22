@@ -278,8 +278,10 @@ risk_reduction_exclude_family_history2 = function(r2,h2,K,q,n,df,dm, n_samples =
   {
     # Again did change of variable so it will be N(0, 1).
     c <- cs
-    modifier <- r/h * sqrt((h2-r2)/2)
-    c = modifier * c + r2/h2 * (gm+gf)/2
+
+    # Not sure why did I do it twice, but it seems wrong from few tests.
+    # modifier <- r/h * sqrt((h2-r2)/2)
+    # c = modifier * c + r2/h2 * (gm+gf)/2
     
     name <- (r/h * sqrt((h2-r2)/2)) * c + r2/h2 * (gm+gf)/2
     
@@ -350,7 +352,14 @@ risk_reduction_exclude_family_history2 = function(r2,h2,K,q,n,df,dm, n_samples =
   mat <- cbind(1, x, tanh(x))
   
   fit <- .lm.fit(mat, risk_selection)
-
+  
+  # Is that more accurate? faster?
+  # a <- integrate(function(x) x * tanh(x) * dnorm(x), -Inf, Inf)$value
+  # b <- integrate(function(x) tanh(x)^2 * dnorm(x), -Inf, Inf)$value
+  # x_x <- rbind(c(1, a),
+  #              c(a, b))
+  # # print(solve(x_x) %*% crossprod(mat, risk_selection) / n_samples)
+  # temp <- mean(risk_selection + (solve(x_x) %*% crossprod(mat[, -1], risk_selection) / n_samples) %*% c(x, tanh(x)))
   risk_selection <- fit$coef[1]
   
   # Estimate the std
