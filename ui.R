@@ -1,29 +1,3 @@
-# Done
-# Change r^2 to R^2 to be consistent (in the plot axis)
-# Number of embryos - Change max to 10
-# Remove two diseases
-# Number needed to screen (change to number of couples) - use ceiling
-# Monte carlo question mark - a more accurate estimate (without s)
-# Plot - stronger grid lines
-# Plot - larger points, quantiles from which to exclude should be > 0
-# Plot - the quantile from which to exclude, add example, "PRS above", add question mark. "if all embryos are high risk, a random embryo is chosen"
-# Prevalence - start from 1/1000, no ticks, to 0.3
-# Also change box site so every number would fit
-# Change quantile to percentile
-# Add space before parentheses
-# Plot - Prevalence by RR, does it make sense? shouldn't the abs risk and RR be different?
-# Add question marks when plot
-# Disease prevalence question mark - means that 1% of the population have the disease
-# The proportion of the variance in the liability of the disease explained by the polygenic risk score. It is a measure of the accuracy of the square. Typically equal 0.05-0.1.
-# h^2 - add "only relevant when conditioning on the parents' diseases status"
-# parents' polygenic risk score 
-# "Based on x simulations."
-# Explain father/mother PRS, and change it so 1% is the top 1% risk
-
-# TODO
-# Call it: PGT-P outcome calculator (single disease).
-# Add tests.
-
 library(shiny)
 library(shinyWidgets)
 
@@ -57,7 +31,7 @@ slider_and_numeric <- function(id, label, min, max, step, value, helptext = "",
                   min = min,
                   max = max,
                   step = step,
-                  value = value
+                  value = value,
                 ), 
                 helpPopup(NULL, helptext, placement = placement, c("hover"))))
   }
@@ -140,6 +114,9 @@ about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               disclamir_and_date_text))
 
 plot_panel <- div(class = "well",
+                  conditionalPanel(condition="$('html').hasClass('shiny-busy')",
+                                   tags$div("Loading...",id="loadmessage")
+                  ),
   fluidRow(column(4,
     radioButtons("x_var", "Variable for x axis", choiceNames = c("R-squared", "Disease prevalence", "Number of embryos"), 
                  choiceValues = c("r2", "Disease prevalence", "Number of embryos"),
@@ -204,6 +181,9 @@ plot_panel <- div(class = "well",
 )
 
 calc_panel <- div(class = "well",
+    conditionalPanel(condition="$('html').hasClass('shiny-busy')",
+                     tags$div("Loading...",id="loadmessage")
+    ),
     #               tags$head(tags$script(HTML("$(function() {
     # setTimeout(function(){
     #   var vals = [0];
@@ -293,7 +273,7 @@ calc_panel <- div(class = "well",
              condition = "input.lowestexclude2 == 'Exclude'",
              slider_and_numeric("q2", "Percentile from which to exclude embryos:", 0.01, 0.99, 0.01, 0.3, paste("Embryos with PRS above that percentile are excluded. For example, if the parameter equals 0.1, all embryos with PRS at the top 10% of the distribution of the PRS in the population will be excluded. If no embryo is below the threshold we select one randomly.")),
            ), fluidRow(column(10, offset = 2, htmlOutput("summary"), align = "center"))),
-           column(4,
+           column(4, 
            conditionalPanel(
              condition = "input.type2 == 'Conditional'",
              slider_and_numeric("qf2", "Father's polygenic risk score percentile:", 0.01, 0.99, 0.01, 0.5, paste("For example, if this parameter equal 0.05, the PRS of the father is at the top 5% of the distribution of the PRS in the population.")),
@@ -306,13 +286,13 @@ calc_panel <- div(class = "well",
                            "Father has the disease"),
              checkboxInput("dm2",
                            "Mother has the disease"),
-             slider_and_numeric("samples", "Number of monte carlo draws:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")))),
+             slider_and_numeric("samples", "Number of monte carlo draws:", 100000, 500000, 1000, 200000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")))),
   disclamir_and_date_text)
 
 calc_two_traits <- div(class = "well", fluidRow(column(4,
                                                        slider_and_numeric("N_2", "Number of embryos:", 2, 10, 1, 5, "The number of embryos available for selection."),
                                                        slider_and_numeric("rho", '$\\rho$, the genetic correlation between the diseases:', -0.99, 0.99, 0.01, 0, "The genetic correlation between the two diseases."),
-                                                       slider_and_numeric("samples_2", "Number of monte carlo draws:", 5000, 300000, 10, 10000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")),
+                                                       slider_and_numeric("samples_2", "Number of monte carlo draws:", 100000, 500000, 1000, 100000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")),
                                                 column(4, 
                                                        slider_and_numeric("r2_1", "$$R^2 ~ \\text{disease 1:}$$", 0.01, 1, 0.001, 0.05, "The proportion of the variance in the liability of the first disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
                                                        slider_and_numeric("r2_2", "$$R^2 ~ \\text{disease 2:}$$", 0.01, 1, 0.001, 0.05, "The proportion of the variance in the liability of the second disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
@@ -332,7 +312,22 @@ ui <- fluidPage(
       processEscapes: true
     }
   });
-  </script>")),
+  </script>"),
+            # Thanks to https://stackoverflow.com/questions/17325521/r-shiny-display-loading-message-while-function-is-running
+            tags$style(type="text/css", "
+           #loadmessage {
+             position: fixed;
+             top: 0px;
+             left: 0px;
+             width: 100%;
+             padding: 5px 0px 5px 0px;
+             text-align: center;
+             font-weight: bold;
+             font-size: 100%;
+             color: #000000;
+             background-color: #CCFF66;
+             z-index: 105;
+           }")),
   
   shinyjs::useShinyjs(),
   withMathJax(),
