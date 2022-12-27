@@ -282,7 +282,7 @@ server <- function(input, output, session) {
       if (input$r2 <= input$h2) {
         if (input$lowestexclude2 != "Lowest") {
           temp <-
-            risk_reduction_exclude_family_history2(
+            risk_reduction_exclude_family_history(
               input$r2,
               h2 = input$h2,
               K = input$K2,
@@ -295,7 +295,7 @@ server <- function(input, output, session) {
         }
         else {
           temp <-
-            risk_reduction_lowest_family_history2(
+            risk_reduction_lowest_family_history(
               input$r2,
               h2 = input$h2,
               K = input$K2,
@@ -307,21 +307,22 @@ server <- function(input, output, session) {
         }
         cat(
           sprintf(
-            "<p><u>Baseline risk</u>: <strong>%.4f (%.4f)</strong>\n</p>",
-            temp[1],
-            temp[5]
+            "<p><u>Baseline risk</u>: <strong>%.4f</strong>\n</p>",
+            temp[1]
           )
         )
         cat(
           sprintf(
             "<p><u>Risk for specific strategy</u>: <strong>%.4f (%.4f)</strong>\n</p>",
             temp[2],
-            temp[6]
+            temp[5]
           )
         )
-        cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f</strong>\n</p>", temp[3]))
-        cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f</strong>\n</p>", temp[4]))
-        cat(sprintf("<p><u>Couples needed to screen</u>: <strong>%.0f</strong>\n</p>", ceiling(1/temp[4])))
+        
+        cat(sprintf("<p><u>Relative risk reduction</u>: <strong>%.4f (%.4f) </strong>\n</p>", temp[3], temp[5] / temp[1]))
+        cat(sprintf("<p><u>Absolute risk reduction</u>: <strong>%.4f (%.4f)</strong>\n</p>", temp[4], temp[5]))
+        
+        cat(sprintf("<p><u>Couples needed to screen</u>: <strong>%.0f (%.4f)</strong>\n</p>", ceiling(1/temp[4]), temp[5] / temp[4]^2))
         
         cat(sprintf("<p style = \"color:red\">Based on %d draws. Estimated standard deviation in parentheses.</p>", input$samples))
         if(temp[1] < temp[2]) {

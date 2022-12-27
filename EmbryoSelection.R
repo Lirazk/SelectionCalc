@@ -4,13 +4,13 @@ library(OwenQ)
 
 # Some silly micro-optimization instead of using one more general log(pnorm(b) - pnorm(a)), 
 # should also be more accurate though.
-log_dtruncnorm_left <- function(x, a) {
-  dnorm(x, log = T) - pnorm(a, lower.tail = F, log.p = T)
-}
-
-log_dtruncnorm_right <- function(x, b) {
-  dnorm(x, log = T) - pnorm(b, log.p = T)
-}
+# log_dtruncnorm_left <- function(x, a) {
+#   dnorm(x, log = T) - pnorm(a, lower.tail = F, log.p = T)
+# }
+# 
+# log_dtruncnorm_right <- function(x, b) {
+#   dnorm(x, log = T) - pnorm(b, log.p = T)
+# }
 
 # The next four functions are basically the same ones as before.
 
@@ -163,213 +163,199 @@ risk_reduction_exclude_conditional = function(r2,K,q,n,qf,qm,relative=T)
   return(list(rr=reduction, baseline=baseline, risk=risk))
 }
 
-
 # The next two are using monte carlo simulation + control variate
-risk_reduction_lowest_family_history2 = function(r2,h2,K,n,df,dm, n_samples = 10000)
-{
+
+baseline_risk <- function(r2, h2, K, df, dm) {
   r = sqrt(r2)
   h = sqrt(h2)
   zk = qnorm(K, lower.tail=F)
+  
+  posterior = function(gm,gf)
+  {
+    y = 1
+    y = y * dnorm(gm/h)/h
+    y = y * dnorm(gf/h)/h
+    arg = (zk-gm)/sqrt(1-h2)
+    if (dm)
+    {
+      y = y * pnorm(arg,lower.tail=F) / K
+    } else {
+      y = y * pnorm(arg) / (1-K)
+    }
+    arg = (zk-gf)/sqrt(1-h2)
+    if (df)
+    {
+      y = y * pnorm(arg,lower.tail=F) / K
+    } else {
+      y = y * pnorm(arg) / (1-K)
+    }
+    return(y)
+  }
+  
+  integrand_gm = function(gms,gf)
+  {
+    y = numeric(length(gms))
+    for (i in seq_along(gms))
+    {
+      gm = gms[i]
+      arg = (zk - (gm+gf)/2) / sqrt(1-h2/2)
+      y[i] = pnorm(arg, lower.tail=F)
+      post = posterior(gm,gf)
+      y[i] = y[i] * post
+    }
+    return(y)
+  }
+  
+  integrand_gf = function(gfs)
+  {
+    y = numeric(length(gfs))
+    for (i in seq_along(gfs))
+    {
+      gf = gfs[i]
+      y[i] = integrate(integrand_gm,-Inf,Inf,gf)$value
+    }
+    return(y)
+  }
+  
+  risk_baseline = integrate(integrand_gf,-Inf,Inf)$value
+  return(risk_baseline)
+}
+
+risk_reduction_lowest_family_history = function(r2, h2, K, n, df, dm, n_samples = 10000)
+{
+  r = sqrt(r2)
+  h = sqrt(h2)
+  zk = qnorm(K, lower.tail = F)
   
   integrand_lowest_given_parents = function(t,gm,gf)
   {
-    # The sample is with respect to t ~ Normal(0, 1), so I've removed the dnorm term.
-    arg = (zk - (gm+gf)/2 - t*r/sqrt(2)) / sqrt(1-h^2/2-r^2/2)
-    y = n * pnorm(t,lower.tail=F)^(n-1) * pnorm(arg, lower.tail=F)
+    arg = (zk - (gm+gf)/2 - t*r/sqrt(2)) / sqrt(1-h2/2-r2/2)
+    y = log(n) + dnorm(t, log = T) + (n-1) * pnorm(t, lower.tail = F, log.p = T) + pnorm(arg, lower.tail = F, log.p = T)
     return(y)
   }
   
   posterior = function(gm,gf)
   {
-    # Again the the dnorm terms are removed + I've used the change of variable
-    # gf' = gf/h
-    # gm' = gm/h
-    # so it will work with N(0, 1). Though it did force me to use h*gf' in every place.
-    y <- 1
-    arg = (zk-h*gm)/sqrt(1-h2)
+    y = dnorm(gm, sd = h, log = T)
+    y = y + dnorm(gf, sd = h, log = T)
+    arg = (zk-gm)/sqrt(1-h2)
     if (dm)
     {
-      y = y * pnorm(arg,lower.tail=F) / K
+      y <- y + pnorm(arg, lower.tail = F, log.p = T) - log(K)
     } else {
-      y = y * pnorm(arg) / (1-K)
+      y <- y + pnorm(arg, log.p = T) - log(1-K)
     }
-    arg = (zk-h*gf)/sqrt(1-h2)
+    arg = (zk-gf)/sqrt(1-h2)
     if (df)
     {
-      y = y * pnorm(arg,lower.tail=F) / K
+      y <- y + pnorm(arg, lower.tail = F, log.p = T) - log(K)
     } else {
-      y = y * pnorm(arg) / (1-K)
+      y <- y + pnorm(arg, log.p = T) - log(1-K)
     }
     return(y)
   }
   
-  integrand_gm = function(gms,gf,baseline, x2)
+  integrand_gm = function(t, gms,gfs)
   {
-    if (baseline) {
-      arg = (zk - (h*gms+h*gf)/2) / sqrt(1-h^2/2)
-      y <- pnorm(arg, lower.tail = F)
-    }
-    else {
-      y <- (integrand_lowest_given_parents(x2, h*gms, h*gf))
-    }
-    post = posterior(gms,gf)
-    y = y * post
+    y <- integrand_lowest_given_parents(t, gms, gfs)
+    post <- posterior(gms,gfs)
+    y <- y + post
     return(y)
-  }
+  }  
   
-  integrand_gf = function(gfs,baseline)
-  {
-    # Probably needs some refactoring, basically we estimate the integral with control variate
-    # by regression. .lm.fit is quite a bit faster than then normal lm.
-    # Perhaps I should use some multivariate basis function instead of those?
-    x <- rnorm(n_samples)
-    x2 <- rnorm(n_samples)
-    y <- integrand_gm(x, gfs, baseline, x2)
-    mat <- cbind(1, x, tanh(x), gfs, tanh(gfs), x2, tanh(x2))
-    fit <- .lm.fit(mat, y)
-    std <- sqrt(sum((fit$resid)^2) / (length(x) - fit$rank))
-    return(list(y = fit$coef[1], std = sqrt(diag(solve(crossprod(mat)))[1]) * std))
-  }
-  risk_selection = integrand_gf(rnorm(n_samples), F)
-  risk_baseline = integrand_gf(rnorm(n_samples), T)
+  opt <- optim(c(1, 1, 1), function(theta) -integrand_gm(theta[1], theta[2], theta[3]), hessian = T)
+  
+  # Sample points from t distribution
+  data <- mvtnorm::rmvt(n_samples, sigma = solve(opt$hessian), df = 3, delta = opt$par)
+  y <- exp(integrand_gm(data[, 1], data[, 2], data[, 3]))
 
-  relative_reduction = (risk_baseline$y-risk_selection$y)/risk_baseline$y
-  abs_reduction = risk_baseline$y-risk_selection$y
-  return(c(risk_baseline$y,risk_selection$y,relative_reduction,abs_reduction,
-           risk_baseline$std, risk_selection$std))
-}
-
-risk_reduction_exclude_family_history2 = function(r2,h2,K,q,n,df,dm, n_samples = 10000)
-{
-  r = sqrt(r2)
-  h = sqrt(h2)
-  zk = qnorm(K, lower.tail=F)
-  zq = qnorm(q, lower.tail=F)
-  # Most of the same comments applies here.
-  
-  posterior = function(gm,gf)
-  {
-    y <- 1
-    arg = (zk-h*gm)/sqrt(1-h2)
-    if (dm)
-    {
-      y = y * pnorm(arg,lower.tail=F) / K
-    } else {
-      y = y * pnorm(arg) / (1-K)
-    }
-    arg = (zk-h*gf)/sqrt(1-h2)
-    if (df)
-    {
-      y = y * pnorm(arg,lower.tail=F) / K
-    } else {
-      y = y * pnorm(arg) / (1-K)
-    }
-    return(y)
-  }
-  
-  integrand_t = function(t,gm,gf)
-  {
-    arg = (zk-t*r/sqrt(2)-(gm+gf)/2)/sqrt(1-h2/2-r2/2)
-    y = pnorm(arg,lower.tail=F, log.p = T)
-    return(y)
-  }
-  
-  integrand_c = function(cs,gm,gf)
-  {
-    # Again did change of variable so it will be N(0, 1).
-    c <- cs
-
-    # Not sure why did I do it twice, but it seems wrong from few tests.
-    # modifier <- r/h * sqrt((h2-r2)/2)
-    # c = modifier * c + r2/h2 * (gm+gf)/2
-    
-    name <- (r/h * sqrt((h2-r2)/2)) * c + r2/h2 * (gm+gf)/2
-    
-    gamma = zq*sqrt(2) - name/(r/sqrt(2))
-    denom = pnorm(gamma)
-    denom <- ifelse(denom==0, 1e-300, denom) # Avoid dividing by zero
-    
-    samples <- qnorm(runif(length(cs), 0, denom))
-    samples2 <- samples
-    f1 <- integrand_t(samples, gm, gf) + dnorm(samples, log = T) - log_dtruncnorm_right(samples, b=gamma)
-    internal_int <- exp(f1)
-    
-    numer = (1-(1-denom)^n) * internal_int
-    term1 = numer/denom
-    
-    samples <- qnorm(runif(length(cs), denom, 1))
-    f2 <- integrand_t(samples, gm, gf) + dnorm(samples, log = T) - log_dtruncnorm_left(samples, a=gamma)
-    internal_int <- exp(f2)
-    term2 = (1-denom)^(n-1) * internal_int
-    y <- term1 + term2
-    return(list(y=y, x1 = samples2 + dnorm(gamma) / denom, x2 = samples - dnorm(gamma) / (1-denom)))
-  }
-  
-  integrand_gm = function(gms,gf,baseline)
-  {
-    if(baseline) {
-      arg <- (zk - (h*gms+h*gf)/2) / sqrt(1-h2/2)
-      y <- list(y=pnorm(arg, lower.tail = F), x1=NULL, x2=NULL)
-    }
-    else {
-      y <- integrand_c(rnorm(length(gms)), h*gms, h*gf)
-    }
-    post = posterior(gms,gf)
-    y <- list(y=y$y * post, x1 = y$x1, x2 = y$x2)
-    return(y)
-  }
-  
-  integrand_gf = function(gfs,baseline)
-  {
-    x3 <- rnorm(length(gfs))
-    y <- c(integrand_gm(x3, gfs, baseline), x3 = list(x3))
-    return(y)
-  }
-  
-  # From few tests, it seems that other than x, the rest don't really reduce the variance.
-  # I really need to refactor it since it's too different, coding wise, from the lowest_family_history.
-  x <- rnorm(n_samples)
-  risk_baseline = integrand_gf(x, T)
-  x3 <- risk_baseline$x3
-  risk_baseline <- risk_baseline$y
-  
-  mat <- cbind(1, x, tanh(x))
-  
-  fit <- .lm.fit(mat, risk_baseline)
-  risk_baseline <- fit$coef[1]
-  
-  # Estimate the std
-  std <- sqrt(sum((fit$resid)^2) / (length(x) - fit$rank))
-  baseline_std <- sqrt(diag(solve(crossprod(mat)))[1]) * std 
-  
-  x <- rnorm(n_samples)
-  risk_selection = integrand_gf(x, F)
-  x1 <- risk_selection$x1
-  x2 <- risk_selection$x2
-  x3 <- risk_selection$x3
-  risk_selection <- risk_selection$y
-  
-  mat <- cbind(1, x, tanh(x))
-  
-  fit <- .lm.fit(mat, risk_selection)
-  
-  # Is that more accurate? faster?
-  # a <- integrate(function(x) x * tanh(x) * dnorm(x), -Inf, Inf)$value
-  # b <- integrate(function(x) tanh(x)^2 * dnorm(x), -Inf, Inf)$value
-  # x_x <- rbind(c(1, a),
-  #              c(a, b))
-  # # print(solve(x_x) %*% crossprod(mat, risk_selection) / n_samples)
-  # temp <- mean(risk_selection + (solve(x_x) %*% crossprod(mat[, -1], risk_selection) / n_samples) %*% c(x, tanh(x)))
-  risk_selection <- fit$coef[1]
-  
-  # Estimate the std
-  std <- sqrt(sum((fit$resid)^2) / (length(x) - fit$rank))
-  selection_std <- sqrt(diag(solve(crossprod(mat)))[1]) * std 
+  risk_selection = mean(y / mvtnorm::dmvt(data, solve(opt$hessian), df = 3, delta = opt$par, log = F))
+  sd <- sqrt(mean((y / mvtnorm::dmvt(data, solve(opt$hessian), df = 3, delta = opt$par, log = F) - risk_selection)^2) / n_samples)
+  risk_baseline <- baseline_risk(r2, h2, K, df, dm)
   
   relative_reduction = (risk_baseline-risk_selection)/risk_baseline
   abs_reduction = risk_baseline-risk_selection
-  return(c(risk_baseline,risk_selection,relative_reduction,abs_reduction,
-           baseline_std, selection_std))
+  return(c(risk_baseline,risk_selection,relative_reduction,abs_reduction, sd))
+}
+
+risk_reduction_exclude_family_history <- function(r2, h2, K, q, n, df, dm, n_samples = 10000)
+{
+  # We need h > r, so if not, subtract epsilon from r. Unless h is zero, and then we add epsilon to h
+  if (h2 == 0) {h2 <- h2 + 0.0001}
+  else if (h2 == r2) {r2 <- r2 - 0.0001}
+  
+  r <- sqrt(r2)
+  h <- sqrt(h2)
+  zk <- qnorm(K, lower.tail = F)
+  zq <- qnorm(q, lower.tail = F)
+  
+  posterior <- function(gm,gf)
+  {
+    y <- dnorm(gm, sd = h, log = T)
+    y <- y + dnorm(gf, sd = h, log = T)
+    arg <- (zk-gm)/sqrt(1-h2)
+    if (dm)
+    {
+      y <- y + pnorm(arg,lower.tail = F, log.p = T) - log(K)
+    } else {
+      y <- y + pnorm(arg, log.p = T) - log(1-K)
+    }
+    arg <- (zk-gf)/sqrt(1-h2)
+    if (df)
+    {
+      y <- y + pnorm(arg,lower.tail = F, log.p = T) - log(K)
+    } else {
+      y <- y + pnorm(arg, log.p = T) - log(1-K)
+    }
+    return(y)
+  }
+  
+  integrand_t <- function(t,gm,gf)
+  {
+    arg <- (zk-t*r/sqrt(2)-(gm+gf)/2)/sqrt(1-h2/2-r2/2)
+    y <- dnorm(t, log = T) + pnorm(arg, lower.tail = F, log.p = T)
+    return(y)
+  }
+  
+  integrand_c <- function(cs, gm, gf, t)
+  {
+    gamma = zq*sqrt(2) - cs/(r/sqrt(2))
+    denom <- pnorm(gamma)
+    denom <- ifelse(denom==0, 1e-300, denom) # Avoid dividing by zero
+    f <- integrand_t(t, gm, gf)
+    
+    numer <- log(1-(1-denom)^n)
+    # print(sum(t<=gamma))
+    y <- ifelse(t <= gamma, numer-log(denom), (n-1) * log(1-denom)) + f
+    y <- y + dnorm(cs, mean=r2/h2 * (gm+gf)/2, sd=r/h * sqrt((h2-r2)/2), log = T)
+    
+    return(y)
+  }
+  
+  integrand_gm = function(gms,gfs, c, t)
+  {
+    y <- integrand_c(c, gms, gfs, t)
+    post <- posterior(gms, gfs)
+    y <- y + post
+    return(y)
+  }
+  # opt <- optim(c(1, 1, 1, zq*sqrt(2) - 1/(r/sqrt(2)) - 1), function(theta) -integrand_gm(theta[1], theta[2], theta[3], theta[4]), hessian = T)
+  opt <- optim(c(1, 1, 1, 1), function(theta) -integrand_gm(theta[1], theta[2], theta[3], theta[4]), hessian = T)
+  
+  # print(opt)
+  # print(solve(opt$hessian))
+  
+  # Sample points from t distribution
+  data <- mvtnorm::rmvt(n_samples, sigma = solve(opt$hessian), df = 3, delta = opt$par)
+  y <- exp(integrand_gm(data[, 1], data[, 2], data[, 3], data[, 4]))
+  
+  risk_selection = mean(y / mvtnorm::dmvt(data, solve(opt$hessian), df = 3, delta = opt$par, log = F))
+  sd <- sqrt(mean((y / mvtnorm::dmvt(data, solve(opt$hessian), df = 3, delta = opt$par, log = F) - risk_selection)^2) / n_samples)
+  risk_baseline <- baseline_risk(r2, h2, K, df, dm)
+  
+  relative_reduction = (risk_baseline-risk_selection)/risk_baseline
+  abs_reduction = risk_baseline-risk_selection
+  return(c(risk_baseline,risk_selection,relative_reduction,abs_reduction, sd))
 }
 
 simulate_lowest_risk_two_traits = function(r2A,r2B,rho,KA,KB,ns,nfam=10000)
