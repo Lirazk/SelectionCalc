@@ -273,7 +273,7 @@ server <- function(input, output, session) {
       cat(sprintf("<p><u>Couples needed to screen</u>: <strong>%.0f</strong></p>", ceiling(1/(temp$rr * temp$baseline))))
     }
     else {
-      if (input$r2 > input$h2) {
+      if (input$r2 >= input$h2) {
         updateNumericInput(session, "input_r2", value = input$h2)
         updateSliderInput(session, "r2", value = input$h2)
       }
@@ -326,7 +326,7 @@ server <- function(input, output, session) {
         
         cat(sprintf("<p style = \"color:red\">Based on %d draws. Estimated standard deviation in parentheses.</p>", input$samples))
         if(temp[1] < temp[2]) {
-          cat(sprintf("<p style = \"color:red\">Baseline risk is smaller than the strategy risk, so the sample size is probably too small.</p>", input$samples))
+          cat(sprintf("<b><p style = \"color:red\">Baseline risk is smaller than the strategy risk. Either the sample size is too small, or the baseline and strategy risk are almost identical.</p></b>"))
         }
         # cat("Note that the standard deviation of the relative risk reduction can be much higher, and a larger sample size should be used to estimate it well.")
       }

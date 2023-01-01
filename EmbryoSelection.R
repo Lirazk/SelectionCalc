@@ -163,7 +163,7 @@ risk_reduction_exclude_conditional = function(r2,K,q,n,qf,qm,relative=T)
   return(list(rr=reduction, baseline=baseline, risk=risk))
 }
 
-# The next two are using monte carlo simulation + control variate
+# The next two are using monte carlo simulation
 
 baseline_risk <- function(r2, h2, K, df, dm) {
   r = sqrt(r2)
@@ -264,13 +264,15 @@ risk_reduction_lowest_family_history = function(r2, h2, K, n, df, dm, n_samples 
   }  
   
   opt <- optim(c(1, 1, 1), function(theta) -integrand_gm(theta[1], theta[2], theta[3]), hessian = T)
+  var_matrix <- solve(opt$hessian)
+  means <- opt$par
   
   # Sample points from t distribution
-  data <- mvtnorm::rmvt(n_samples, sigma = solve(opt$hessian), df = 3, delta = opt$par)
+  data <- rmvt(n_samples, sigma = var_matrix, df = 3, mu = means)
   y <- exp(integrand_gm(data[, 1], data[, 2], data[, 3]))
 
-  risk_selection = mean(y / mvtnorm::dmvt(data, solve(opt$hessian), df = 3, delta = opt$par, log = F))
-  sd <- sqrt(mean((y / mvtnorm::dmvt(data, solve(opt$hessian), df = 3, delta = opt$par, log = F) - risk_selection)^2) / n_samples)
+  risk_selection = mean(y / dmvt(data, var_matrix, df = 3, mu = means, log = F))
+  sd <- sqrt(mean((y / dmvt(data, var_matrix, df = 3, mu = means, log = F) - risk_selection)^2) / n_samples)
   risk_baseline <- baseline_risk(r2, h2, K, df, dm)
   
   relative_reduction = (risk_baseline-risk_selection)/risk_baseline
@@ -317,7 +319,7 @@ risk_reduction_exclude_family_history <- function(r2, h2, K, q, n, df, dm, n_sam
     return(y)
   }
   
-  integrand_c <- function(cs, gm, gf, t)
+  integrand_c1 <- function(cs, gm, gf, t)
   {
     gamma = zq*sqrt(2) - cs/(r/sqrt(2))
     denom <- pnorm(gamma)
@@ -325,32 +327,72 @@ risk_reduction_exclude_family_history <- function(r2, h2, K, q, n, df, dm, n_sam
     f <- integrand_t(t, gm, gf)
     
     numer <- log(1-(1-denom)^n)
-    # print(sum(t<=gamma))
-    y <- ifelse(t <= gamma, numer-log(denom), (n-1) * log(1-denom)) + f
+    y <- numer-log(denom) + f
     y <- y + dnorm(cs, mean=r2/h2 * (gm+gf)/2, sd=r/h * sqrt((h2-r2)/2), log = T)
     
     return(y)
   }
   
-  integrand_gm = function(gms,gfs, c, t)
+  integrand_c2 <- function(cs, gm, gf, t)
   {
-    y <- integrand_c(c, gms, gfs, t)
+    gamma = zq*sqrt(2) - cs/(r/sqrt(2))
+    denom <- pnorm(gamma)
+    denom <- ifelse(denom==0, 1e-300, denom) # Avoid dividing by zero
+    f <- integrand_t(t, gm, gf)
+    
+    numer <- log(1-(1-denom)^n)
+    y <- (n-1) * log(1-denom) + f
+    y <- y + dnorm(cs, mean=r2/h2 * (gm+gf)/2, sd=r/h * sqrt((h2-r2)/2), log = T)
+    
+    return(y)
+  }
+  
+  integrand_gm1 = function(gms,gfs, c, t)
+  {
+    y <- integrand_c1(c, gms, gfs, t)
     post <- posterior(gms, gfs)
     y <- y + post
     return(y)
   }
-  # opt <- optim(c(1, 1, 1, zq*sqrt(2) - 1/(r/sqrt(2)) - 1), function(theta) -integrand_gm(theta[1], theta[2], theta[3], theta[4]), hessian = T)
-  opt <- optim(c(1, 1, 1, 1), function(theta) -integrand_gm(theta[1], theta[2], theta[3], theta[4]), hessian = T)
   
-  # print(opt)
-  # print(solve(opt$hessian))
+  integrand_gm2 = function(gms,gfs, c, t)
+  {
+    y <- integrand_c2(c, gms, gfs, t)
+    post <- posterior(gms, gfs)
+    y <- y + post
+    return(y)
+  }
+  # df didn't really matter, but I chose higher one since otherwise we get a bit more NA (due to pnorm(gamma) being 1, and then
+  # the truncated distribution might sample infinities)
+  df <- 5
   
-  # Sample points from t distribution
-  data <- mvtnorm::rmvt(n_samples, sigma = solve(opt$hessian), df = 3, delta = opt$par)
-  y <- exp(integrand_gm(data[, 1], data[, 2], data[, 3], data[, 4]))
+  opt1 <- optim(c(1, 1, zq*r, 1), function(theta) -integrand_gm1(theta[1], theta[2], theta[3], theta[4]), hessian = T)
+  var_matrix1 <- solve(opt1$hessian)
+  means1 <- opt1$par
   
-  risk_selection = mean(y / mvtnorm::dmvt(data, solve(opt$hessian), df = 3, delta = opt$par, log = F))
-  sd <- sqrt(mean((y / mvtnorm::dmvt(data, solve(opt$hessian), df = 3, delta = opt$par, log = F) - risk_selection)^2) / n_samples)
+  data1 <- rmvt(n_samples, sigma = var_matrix1[1:3, 1:3], df = df, mu = means1[1:3])
+  data1 <- cbind(data1, qnorm(runif(n_samples) * pnorm(zq*sqrt(2) - data1[, 3]/(r/sqrt(2)), means1[4], sqrt(var_matrix1[4, 4])),
+                              means1[4], sqrt(var_matrix1[4, 4])))
+  y1 <- exp(integrand_gm1(data1[, 1], data1[, 2], data1[, 3], data1[, 4])) / 
+    exp(dmvt(data1[, 1:3], var_matrix1[1:3, 1:3], df = df, mu = means1[1:3], log = T) + 
+      dnorm(data1[, 4], means1[4], sqrt(var_matrix1[4, 4]), log = T) - 
+      pnorm(zq*sqrt(2) - data1[, 3]/(r/sqrt(2)), means1[4], sqrt(var_matrix1[4, 4]), log.p = T))
+  
+  opt2 <- optim(c(1, 1, zq*r, 1), function(theta) -integrand_gm2(theta[1], theta[2], theta[3], theta[4]), hessian = T)
+  var_matrix2 <- solve(opt2$hessian)
+  means2 <- opt2$par
+  
+  data2 <- rmvt(n_samples, sigma = var_matrix2[1:3, 1:3], df = df, mu = means2[1:3])
+  pnorm_temp <- pnorm(zq*sqrt(2) - data2[, 3]/(r/sqrt(2)), means2[4], sqrt(var_matrix2[4, 4]))
+  data2 <- cbind(data2, qnorm(pnorm_temp+runif(n_samples)*(1-pnorm_temp), 
+                              opt2$par[4], sqrt(var_matrix2[4, 4])))
+  y2 <- exp(integrand_gm2(data2[, 1], data2[, 2], data2[, 3], data2[, 4])) /
+    exp(dmvt(data2[, 1:3], var_matrix2[1:3, 1:3], df = df, mu = means2[1:3], log = T) +
+       dnorm(data2[, 4], means2[4], sqrt(var_matrix2[4, 4]), log = T) - 
+       pnorm(zq*sqrt(2) - data2[, 3]/(r/sqrt(2)), means2[4], sqrt(var_matrix2[4, 4]), lower.tail = F, log.p = T))
+
+  risk_selection = mean(y1, na.rm = T) + mean(y2, na.rm = T)
+  sd <- sqrt(((mean((y1 - mean(y1, na.rm=T))^2, na.rm = T) + (mean((y2 - mean(y2, na.rm = T))^2, na.rm = T))) / n_samples))
   risk_baseline <- baseline_risk(r2, h2, K, df, dm)
   
   relative_reduction = (risk_baseline-risk_selection)/risk_baseline
