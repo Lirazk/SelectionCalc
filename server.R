@@ -223,7 +223,7 @@ server <- function(input, output, session) {
       )
       cat(
         sprintf(
-          "<p><u>Risk for specific strategy</u>: <strong>%.4f</strong>\n</p>",
+          "<p><u>Risk with embryo selection</u>: <strong>%.4f</strong>\n</p>",
            input$K2 - temp * input$K2
         )
       )
@@ -264,7 +264,7 @@ server <- function(input, output, session) {
       )
       cat(
         sprintf(
-          "<p><u>Risk for specific strategy</u>: <strong>%.4f</strong>\n</p>",
+          "<p><u>Risk with embryo selection</u>: <strong>%.4f</strong>\n</p>",
           temp$risk
         )
       )
@@ -290,7 +290,8 @@ server <- function(input, output, session) {
               n = input$N2,
               input$df2,
               input$dm2,
-              n_samples = input$samples
+              # n_samples = input$samples
+              n_samples = 200000
             )
         }
         else {
@@ -302,7 +303,8 @@ server <- function(input, output, session) {
               n = input$N2,
               input$df2,
               input$dm2,
-              n_samples = input$samples
+              # n_samples = input$samples
+              n_samples = 200000
             )
         }
         cat(
@@ -313,7 +315,7 @@ server <- function(input, output, session) {
         )
         cat(
           sprintf(
-            "<p><u>Risk for specific strategy</u>: <strong>%.4f (%.4f)</strong>\n</p>",
+            "<p><u>Risk with embryo selection</u>: <strong>%.4f (%.4f)</strong>\n</p>",
             temp[2],
             temp[5]
           )
@@ -324,7 +326,8 @@ server <- function(input, output, session) {
         
         cat(sprintf("<p><u>Couples needed to screen</u>: <strong>%.0f (%.4f)</strong>\n</p>", ceiling(1/temp[4]), temp[5] / temp[4]^2))
         
-        cat(sprintf("<p style = \"color:red\">Based on %d draws. Estimated standard deviation in parentheses.</p>", input$samples))
+        # cat(sprintf("<p style = \"color:red\">Based on %d draws. Estimated standard deviation in parentheses.</p>", input$samples))
+        cat(sprintf("<p style = \"color:red\">Based on simulation. Estimated standard deviation in parentheses.</p>"))
         if(temp[1] < temp[2]) {
           cat(sprintf("<b><p style = \"color:red\">Baseline risk is smaller than the strategy risk. Either the sample size is too small, or the baseline and strategy risk are almost identical.</p></b>"))
         }
@@ -351,7 +354,8 @@ server <- function(input, output, session) {
     cat(sprintf("<p><u>Absolute risk reduction for disease 2</u>: <strong>%.4f</strong>\n</p>", ifelse(input$rho == 0, 0, temp[4])))
     cat(sprintf("<p><u>Couples needed to screen for disease 2</u>: <strong>%.0f</strong>\n</p>", ifelse(input$rho == 0, 0, ceiling(1/temp[4]))))
     
-    cat(sprintf("<p style = \"color:red\">Based on %d simulations.</p>", input$samples_2))
+    # cat(sprintf("<p style = \"color:red\">Based on %d simulations.</p>", input$samples_2))
+    cat(sprintf("<p style = \"color:red\">Based on simulation.</p>", input$samples_2))
     cat("</div>")
   })
 }

@@ -93,11 +93,16 @@ about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                                    <li>Mother's PRS percentile: An analogous parameter for the mother.</li>
                                    </ol>"),
                               p("When conditioning on the parental disease status, the following parameters are required:"),
+                              # HTML("<ol>
+                              #      <li>Father has the disease: yes/no</li>
+                              #      <li>Mother has the disease: yes/no</li>
+                              #      <li>$h^2$: The heritability of the disease, i.e., the proportion of variance in the liability of the disease explained by additive genetic factors.</li>
+                              #      <li>Number of Monte-Carlo draws: when conditioning on the parental disease status, the risk is estimated using a Monte-Carlo method. With more draws, the risk estimate becomes more accurate but is slower to compute.</li>
+                              #      </ol>"),
                               HTML("<ol>
                                    <li>Father has the disease: yes/no</li>
                                    <li>Mother has the disease: yes/no</li>
                                    <li>$h^2$: The heritability of the disease, i.e., the proportion of variance in the liability of the disease explained by additive genetic factors.</li>
-                                   <li>Number of Monte-Carlo draws: when conditioning on the parental disease status, the risk is estimated using a Monte-Carlo method. With more draws, the risk estimate becomes more accurate but is slower to compute.</li>
                                    </ol>"),
                               # h2("Two diseases"),
                               # p("Two diseases is a calculator of the risk of two diseases, given a certain correlation and when selecting the embryo with the lowest PRS for disease 1. It is based on a simulation as explained in the paper."),
@@ -285,8 +290,8 @@ calc_panel <- div(class = "well",
              checkboxInput("df2",
                            "Father has the disease"),
              checkboxInput("dm2",
-                           "Mother has the disease"),
-             slider_and_numeric("samples", "Number of monte carlo draws:", 100000, 500000, 1000, 200000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")))),
+                           "Mother has the disease")))),
+             # slider_and_numeric("samples", "Number of monte carlo draws:", 100000, 500000, 1000, 200000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")))),
   disclamir_and_date_text)
 
 calc_two_traits <- div(class = "well", fluidRow(column(4,

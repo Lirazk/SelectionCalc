@@ -268,11 +268,11 @@ risk_reduction_lowest_family_history = function(r2, h2, K, n, df, dm, n_samples 
   means <- opt$par
   
   # Sample points from t distribution
-  data <- rmvt(n_samples, sigma = var_matrix, df = 3, mu = means)
+  data <- rmvt(n_samples, sigma = var_matrix, df = 5, mu = means)
   y <- exp(integrand_gm(data[, 1], data[, 2], data[, 3]))
 
-  risk_selection = mean(y / dmvt(data, var_matrix, df = 3, mu = means, log = F))
-  sd <- sqrt(mean((y / dmvt(data, var_matrix, df = 3, mu = means, log = F) - risk_selection)^2) / n_samples)
+  risk_selection = mean(y / dmvt(data, var_matrix, df = 5, mu = means, log = F))
+  sd <- sqrt(mean((y / dmvt(data, var_matrix, df = 5, mu = means, log = F) - risk_selection)^2) / n_samples)
   risk_baseline <- baseline_risk(r2, h2, K, df, dm)
   
   relative_reduction = (risk_baseline-risk_selection)/risk_baseline
@@ -364,17 +364,17 @@ risk_reduction_exclude_family_history <- function(r2, h2, K, q, n, df, dm, n_sam
   }
   # df didn't really matter, but I chose higher one since otherwise we get a bit more NA (due to pnorm(gamma) being 1, and then
   # the truncated distribution might sample infinities)
-  df <- 5
+  degrees_of_freedom <- 5
   
   opt1 <- optim(c(1, 1, zq*r, 1), function(theta) -integrand_gm1(theta[1], theta[2], theta[3], theta[4]), hessian = T)
   var_matrix1 <- solve(opt1$hessian)
   means1 <- opt1$par
   
-  data1 <- rmvt(n_samples, sigma = var_matrix1[1:3, 1:3], df = df, mu = means1[1:3])
+  data1 <- rmvt(n_samples, sigma = var_matrix1[1:3, 1:3], df = degrees_of_freedom, mu = means1[1:3])
   data1 <- cbind(data1, qnorm(runif(n_samples) * pnorm(zq*sqrt(2) - data1[, 3]/(r/sqrt(2)), means1[4], sqrt(var_matrix1[4, 4])),
                               means1[4], sqrt(var_matrix1[4, 4])))
   y1 <- exp(integrand_gm1(data1[, 1], data1[, 2], data1[, 3], data1[, 4])) / 
-    exp(dmvt(data1[, 1:3], var_matrix1[1:3, 1:3], df = df, mu = means1[1:3], log = T) + 
+    exp(dmvt(data1[, 1:3], var_matrix1[1:3, 1:3], df = degrees_of_freedom, mu = means1[1:3], log = T) + 
       dnorm(data1[, 4], means1[4], sqrt(var_matrix1[4, 4]), log = T) - 
       pnorm(zq*sqrt(2) - data1[, 3]/(r/sqrt(2)), means1[4], sqrt(var_matrix1[4, 4]), log.p = T))
   
@@ -382,12 +382,12 @@ risk_reduction_exclude_family_history <- function(r2, h2, K, q, n, df, dm, n_sam
   var_matrix2 <- solve(opt2$hessian)
   means2 <- opt2$par
   
-  data2 <- rmvt(n_samples, sigma = var_matrix2[1:3, 1:3], df = df, mu = means2[1:3])
+  data2 <- rmvt(n_samples, sigma = var_matrix2[1:3, 1:3], df = degrees_of_freedom, mu = means2[1:3])
   pnorm_temp <- pnorm(zq*sqrt(2) - data2[, 3]/(r/sqrt(2)), means2[4], sqrt(var_matrix2[4, 4]))
   data2 <- cbind(data2, qnorm(pnorm_temp+runif(n_samples)*(1-pnorm_temp), 
                               opt2$par[4], sqrt(var_matrix2[4, 4])))
   y2 <- exp(integrand_gm2(data2[, 1], data2[, 2], data2[, 3], data2[, 4])) /
-    exp(dmvt(data2[, 1:3], var_matrix2[1:3, 1:3], df = df, mu = means2[1:3], log = T) +
+    exp(dmvt(data2[, 1:3], var_matrix2[1:3, 1:3], df = degrees_of_freedom, mu = means2[1:3], log = T) +
        dnorm(data2[, 4], means2[4], sqrt(var_matrix2[4, 4]), log = T) - 
        pnorm(zq*sqrt(2) - data2[, 3]/(r/sqrt(2)), means2[4], sqrt(var_matrix2[4, 4]), lower.tail = F, log.p = T))
 
