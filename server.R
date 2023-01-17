@@ -25,17 +25,17 @@ server <- function(input, output, session) {
     removeModal()
     accepeted <<- T
   })
-
+  
+  choice_names <- c("PRS accuracy (R-squared)", "Disease prevalence", "Number of embryos", "Percentile")
+  choice_values <- c("r2", "Disease prevalence", "Number of embryos", "Percentile")
   observeEvent(input$lowestexclude, {
     if (input$lowestexclude == "Lowest") {
-      # withMathJax(updateSelectInput(session, "x_var", choices = c("r2", "Disease prevalence", "Number of embryos")))
-      withMathJax(updateRadioButtons(session, "x_var", choiceNames = c("R-squared", "Disease prevalence", "Number of embryos"), 
-                                     choiceValues = c("r2", "Disease prevalence", "Number of embryos"), inline = T))
+      updateRadioButtons(session, "x_var", choiceNames = choice_names[1:3], 
+                                     choiceValues = choice_values[1:3], inline = T)
     }
     else {
-      # withMathJax(updateSelectInput(session, "x_var", choices = c("r2", "Disease prevalence", "Number of embryos", "Quantile")))
-      withMathJax(updateRadioButtons(session, "x_var", choiceNames = c("R-squared", "Disease prevalence", "Number of embryos", "Percentile"),
-                                     choiceValues = c("r2", "Disease prevalence", "Number of embryos", "Percentile"), inline = T))
+      updateRadioButtons(session, "x_var", choiceNames = choice_names,
+                                     choiceValues = choice_values, inline = T)
     }
   })
   
@@ -127,7 +127,8 @@ server <- function(input, output, session) {
       }
       # subtitle <- "Lowest strategy"
       # x_lab <- "PRS r^2"
-      x_lab <- expression(R^2)
+      # x_lab <- expression("PRS accuracy (R^2)")
+      x_lab <- expression(paste("PRS accuracy (", R^2, ")"))
     }
     else if (selected_x == "Percentile") {
       # q

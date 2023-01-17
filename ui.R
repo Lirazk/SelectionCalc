@@ -80,7 +80,7 @@ about_panel <- verticalLayout(div(class = "well", h1("About", align = "center"),
                               p("Use the Plot mode to generate graphs of the relative and absolute risk reductions vs the parameters of the problem for each of the two selection strategies."),
                               p("The parameters are:"),
                               HTML("<ol>
-                                   <li>$R^2$: The proportion of variance in liability to the disease explained by the PRS, which is a measure of the accuracy of the score. $R^2$ is currently between 5-10% for most common polygenic diseases.</li>
+                                   <li>PRS accuracy ($R^2$): The proportion of variance in liability to the disease explained by the PRS, which is a measure of the accuracy of the score. $R^2$ is currently between 5-10% for most common polygenic diseases.</li>
                                    <li>The disease prevalence: The proportion of individuals in the (adult) population affected by the disease.</li>
                                    <li>The number of embryos: The number of viable embryos from which a single embryo is selected for transfer. Important note: the model assumes that each embryo transferred will be born. This parameter should therefore correspond to the number of live births expected from the given cycle.</li>
                                    <li>Quantile from which to exclude: In the “high-risk exclusion” strategy, this is the cutoff that defines embryos as high-risk. Embryos with PRS above that quantile are excluded. For example, if the parameter equals 10%, all embryos with PRS at the top 10% of the distribution of PRS in the population will be excluded.</li>
@@ -139,7 +139,7 @@ plot_panel <- div(class = "well",
     #   step = 0.01,
     #   value = 0.3
     # )),
-    column(4, slider_and_numeric("r", "$$R^2:$$", 0.01, 1, NULL, 0.05, 
+    column(4, slider_and_numeric("r", "PRS accuracy ($R^2$):", 0.01, 1, NULL, 0.05, 
                                  "The proportion of the variance in the liability of the disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
     # sliderInput(
     #   inputId = "K",
@@ -262,7 +262,7 @@ calc_panel <- div(class = "well",
                   # slider_and_numeric("K2", "Disease prevalence:", 0.01, 1, 0.01, 0.5, NULL),
                   slider_and_numeric("K2", "Disease prevalence:", 0.001, 0.3, 
                                      sort(unique(c(seq(0.001, 0.3, 0.001), round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)))), 0.001, "How prevalent is the disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."),
-                  slider_and_numeric("r2", "$$R^2:$$", 0.01, 0.99, NULL, 0.05, "The proportion of the variance in the liability of the disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1.")),
+                  slider_and_numeric("r2", "PRS accuracy ($R^2$):", 0.01, 0.99, NULL, 0.05, "The proportion of the variance in the liability of the disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1.")),
            column(4, radioButtons(
              inputId = "lowestexclude2",
              label = "Choose lowest risk embryo or exclude high risk embroys",
@@ -299,8 +299,8 @@ calc_two_traits <- div(class = "well", fluidRow(column(4,
                                                        slider_and_numeric("rho", '$\\rho$, the genetic correlation between the diseases:', -0.99, 0.99, 0.01, 0, "The genetic correlation between the two diseases."),
                                                        slider_and_numeric("samples_2", "Number of monte carlo draws:", 100000, 500000, 1000, 100000, "The number of simulations. Higher number will give a more accurate estimate, but might take longer to run.")),
                                                 column(4, 
-                                                       slider_and_numeric("r2_1", "$$R^2 ~ \\text{disease 1:}$$", 0.01, 1, 0.001, 0.05, "The proportion of the variance in the liability of the first disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
-                                                       slider_and_numeric("r2_2", "$$R^2 ~ \\text{disease 2:}$$", 0.01, 1, 0.001, 0.05, "The proportion of the variance in the liability of the second disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
+                                                       slider_and_numeric("r2_1", "PRS accuracy ($R^2 ~ \\text{disease 1}$):", 0.01, 1, 0.001, 0.05, "The proportion of the variance in the liability of the first disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
+                                                       slider_and_numeric("r2_2", "PRS accuracy ($R^2 ~ \\text{disease 2}$):", 0.01, 1, 0.001, 0.05, "The proportion of the variance in the liability of the second disease explained by the polygenic risk score. It is a measure of the accuracy of the score. Typically in the range 0.05-0.1."),
                                                        fluidRow(column(8, offset = 2, htmlOutput("two_traits"), align = "center"))),
                                                 column(4, 
                                                        slider_and_numeric("K_1", "Prevalence of disease 1:", 0.001, 0.3, unique(round(exp(seq(log(0.001), log(0.3), length = 500)), digits = 4)), 0.001, "How prevalent is the first disease in the population? 0.01 means that 1% of the population have the disease, and 0.2 means that 20% of the population have the disease."),
